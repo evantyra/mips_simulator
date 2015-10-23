@@ -1,3 +1,6 @@
+// Authored by Patrick Sullivan
+// Tested by Evan Tyra
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
