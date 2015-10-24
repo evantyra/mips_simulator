@@ -6,81 +6,47 @@
 #include <math.h>
 #include <assert.h>
 #include <string.h>
+#include <memory.h>
+
 int programCounter;
 int canFetch;
 int busyRegister [32];
 struct Register A;
-char *** instruct;
 
 int lineCount;
 
-void syntax(char * str){
+void syntax(char * str, char * str2){
 int commaCount;
 int paranCount;
 
 }
 
-void progScanner()
+// Reads line by line and looks for syntax
+char *progScanner(char* inputString)
 {
-    FILE *instructionFile;
-    instructionFile = fopen("instructions","r");
-    assert (instructionFile != NULL);
+    char *tempLine; 
+    tempLine = (char *)malloc(100*sizeof(char *));
+    char *space = " ";
 
-    char * inputString = (char *) malloc(100*sizeof(char));
+    char delimiters[]=", ";
 
-    int lines = 0;
-    char newLine;
-    while(!feof(instructionFile))
-    {
-        newLine = fgetc(instructionFile);
-        if(newLine == '\n')
-        {
-            lines++;
-        }
-    }
-    lineCount = lines;
+    char *copyInputString;
+    strcopy(copyInputString, inputString);
 
-    int i = 0;
-    int j = 0;
-    instruct = (char ***)malloc(lines*sizeof(char *));
-    for (i = 0; i < lines; i++) {
-        *(instruct+i) = (char **)malloc(4*sizeof(char *));
-        for(j = 0; j < 4; j++)
-        {
-            *(instruct[i] + j) = (char *)malloc(100*sizeof(char *));
-        }
-    }
+    printf("inputString[]=%s\n", inputString);
+    tempLine = strtok(inputString, delimiters);
+    syntax(tempLine, copyInputString);
+    tempLine = strcat(tempLine, space);
+    tempLine = strcat(tempLine, strtok(NULL, delimiters));
+    tempLine = strcat(tempLine, space);
+    tempLine = strcat(tempLine, strtok(NULL, delimiters));
+    tempLine = strcat(tempLine, space);
+    tempLine = strcat(tempLine, strtok(NULL, delimiters));
 
-    rewind(instructionFile);
-    i=0;
-    while(fgets(inputString, 100, instructionFile)>0)
-    {
-        syntax(inputString);
-        char delimiters[]=", ";
+    printf("Templine value = %s\n", tempLine);
 
-
-        printf("inputString[]=%s\n", inputString);
-        strcpy(instruct[i][0] , strtok(inputString, delimiters));
-        strcpy(instruct[i][1] , strtok(NULL, delimiters));
-        strcpy(instruct[i][2] , strtok(NULL, delimiters));
-        strcpy(instruct[i][3] , strtok(NULL, delimiters));
-//        instruct[i][1] = strtok(NULL, delimiters);
-//        instruct[i][2] = strtok(NULL, delimiters);
-//        instruct[i][3] = strtok(NULL, delimiters);
-
-        printf("field 1 = %s field 2 = %s field 3 = %s field 4 = %s \n",instruct[i][0], instruct[i][1], instruct[i][2],instruct[i][3]);
-        printf(" the value of i be %i \n",i);
-        i++;
-    }
-
-//    for(i=0; i<lines; i++)
-//    {
-//        printf("field 1  = %s field 2 = %s field 3 = %s field 4 = %s \n",instruct[i][0], instruct[i][1], instruct[i][2],instruct[i][3]);
-//    }
-
-    printf("line count of file = %i \n",lines);
-
-
+    free(tempLine);
+    return tempLine;
 }
 
 struct Latch
@@ -108,11 +74,45 @@ struct Register
 
 int main()
 {
-    progScanner();
-    int i;
+    // Initiation of variables
+    FILE *instructionFile;
+    char ** instructions;
+
+    // Open instructionFile, if not there, 
+    instructionFile = fopen("instructions","r");
+    assert (instructionFile != NULL);
+
+    // Reads through file once to check for number of lines
+    int lines = 0;
+    char *newLine;
+    while(!feof(instructionFile))
+    {
+        fgets(newLine, 100, instructionFile);
+        lines++;
+    }
+    lineCount = lines;
+    rewind(instructionFile);
+
+    // Initiates double array in accordance to number of lines in the file
+    int i = 0;
+    int j = 0;
+    instructions = (char **)malloc(lines*sizeof(char *));
+    for (i = 0; i < lines; i++) {
+        *(instructions+i) = (char *)malloc(100*sizeof(char *));
+    }
+
+    // Read through file again and check for syntax errors then 
+    int currentLine = 0;
+    while(!feof(instructionFile))
+    {
+        newLine = fgets(newLine, 100, instructionFile);
+        strcopy(instructions[i], progScanner(newLine));
+        currentLine++;
+    }
+
      for(i=0; i<lineCount; i++)
     {
-        printf("field 1  = %s field 2 = %s field 3 = %s field 4 = %s \n",instruct[i][0], instruct[i][1], instruct[i][2],instruct[i][3]);
+        printf("field 1  = %s field 2 = %s field 3 = %s field 4 = %s \n",instructions[i][0], instructions[i][1], instructions[i][2],instructions[i][3]);
     }
 
 
