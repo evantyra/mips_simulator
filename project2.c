@@ -29,6 +29,7 @@ void syntax(char * instruction, char * opcode)
     int commaCount=0;
     int paranLeftCount=0;
     int paranRightCount=0;
+     printf("instruction to syntax = %s \n",instruction);
     for(i=0; i<strlen(instruction); i++)
     {
         if(instruction[i]==',')
@@ -49,6 +50,10 @@ void syntax(char * instruction, char * opcode)
 
 
     }
+    printf(" opcode = %s \n",opcode);
+    printf(" comma count = %i \n",commaCount);
+    printf(" paran left count = %i \n", paranLeftCount);
+    printf(" paran right count = %i \n", paranRightCount);
 
     if (strcmp("lw",opcode)==0||strcmp("sw",opcode)==0)
     {
@@ -74,7 +79,7 @@ char *progScanner(char* inputString)
 
     char delimiters[]=", ()";
 
-    char *copyInputString;
+    char *copyInputString=(char *)malloc(100*sizeof(char *));
     strcpy(copyInputString, inputString);
 
     // Concatanates each part of the string after we check that it is in the correct format
