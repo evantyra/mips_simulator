@@ -48,6 +48,9 @@ void syntax(char * instruction, char * opcode)
     printf(" comma count = %i \n",commaCount);
     printf(" paran left count = %i \n", paranLeftCount);
     printf(" paran right count = %i \n", paranRightCount);
+
+    return;
+
     if (strcmp("lw",opcode)==0||strcmp("sw",opcode)==0)
     {
         assert(commaCount==1);
@@ -77,17 +80,13 @@ char *progScanner(char* inputString)
 
     printf("inputString[]=%s\n", inputString);
     tempLine = strtok(inputString, delimiters);
-    syntax(tempLine, copyInputString);
-    tempLine = strcat(tempLine, space);
+    syntax(copyInputString, tempLine);
     tempLine = strcat(tempLine, strtok(NULL, delimiters));
-    tempLine = strcat(tempLine, space);
     tempLine = strcat(tempLine, strtok(NULL, delimiters));
-    tempLine = strcat(tempLine, space);
     tempLine = strcat(tempLine, strtok(NULL, delimiters));
 
     printf("Templine value = %s\n", tempLine);
 
-    free(tempLine);
     return tempLine;
 }
 
@@ -101,11 +100,6 @@ struct Latch
     int usefulCycleCount;
     int cyclesCountDown;
     int hasUsefulData;
-
-
-
-
-
 };
 
 struct Register
@@ -149,7 +143,7 @@ int main()
     while(!feof(instructionFile))
     {
         newLine = fgets(newLine, 100, instructionFile);
-        strcpy(instructions[i], progScanner(newLine));
+        instructions[i] = progScanner(newLine);
         currentLine++;
     }
 
