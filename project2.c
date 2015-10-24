@@ -127,6 +127,7 @@ int main()
     // Reads through file once to check for number of lines
     int lines = 0;
     char *newLine;
+    newLine = (char *)malloc(100*sizeof(char *));
     while(!feof(instructionFile))
     {
         fgets(newLine, 100, instructionFile);
