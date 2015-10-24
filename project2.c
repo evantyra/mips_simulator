@@ -13,13 +13,18 @@ int canFetch;
 int busyRegister [32];
 struct Register A;
 
-int lineCount;
+struct Latch
+{
+    int rs;
+    int rt;
+    int rd;
+    int usefulCycleCount;
+    int cyclesCountDown;
+    int hasUsefulData;
+};
 
 void syntax(char * instruction, char * opcode)
 {
-    printf("reached \n");
-    printf("string length = %i \n",strlen(instruction));
-    printf("instruction to syntax = %s \n",instruction);
     int i;
     int commaCount=0;
     int paranLeftCount=0;
@@ -44,10 +49,6 @@ void syntax(char * instruction, char * opcode)
 
 
     }
-    printf(" opcode = %s \n",opcode);
-    printf(" comma count = %i \n",commaCount);
-    printf(" paran left count = %i \n", paranLeftCount);
-    printf(" paran right count = %i \n", paranRightCount);
 
     if (strcmp("lw",opcode)==0||strcmp("sw",opcode)==0)
     {
@@ -76,7 +77,7 @@ char *progScanner(char* inputString)
     char *copyInputString;
     strcpy(copyInputString, inputString);
 
-    printf("inputString[]=%s\n", inputString);
+    // Concatanates each part of the string after we check that it is in the correct format
     memcpy(tempLine, strtok(inputString, delimiters), 100);
     syntax(copyInputString, tempLine);
     memcpy(&tempLine[strlen(tempLine)], space, 100);
@@ -86,22 +87,8 @@ char *progScanner(char* inputString)
     memcpy(&tempLine[strlen(tempLine)], space, 100);
     memcpy(&tempLine[strlen(tempLine)], strtok(NULL, delimiters), 100);
 
-    printf("Templine value = %s\n", tempLine);
-
     return tempLine;
 }
-
-struct Latch
-
-{
-
-    int rs;
-    int rt;
-    int rd;
-    int usefulCycleCount;
-    int cyclesCountDown;
-    int hasUsefulData;
-};
 
 struct Register
 {
@@ -120,34 +107,34 @@ int main()
     assert (instructionFile != NULL);
 
     // Reads through file once to check for number of lines
-    int lines = 0;
+    int lineCount = 0;
     char *newLine;
     newLine = (char *)malloc(100*sizeof(char *));
     while(!feof(instructionFile))
     {
         fgets(newLine, 100, instructionFile);
-        lines++;
+        lineCount++;
     }
-    lineCount = lines;
+    lineCount = lineCount;
     rewind(instructionFile);
 
-    // Initiates double array in accordance to number of lines in the file
+    // Initiates double array in accordance to number of lineCount in the file
     int i = 0;
     int j = 0;
-    instructions = (char **)malloc(lines*sizeof(char *));
-    for (i = 0; i < lines; i++) {
+    instructions = (char **)malloc(lineCount*sizeof(char *));
+    for (i = 0; i < lineCount; i++) {
         *(instructions+i) = (char *)malloc(100*sizeof(char *));
     }
 
     // Read through file again and check for syntax errors then
     int currentLine = 0;
-    while(!feof(instructionFile))
+    while(fgets(newLine, 100, instructionFile) != NULL)
     {
-        newLine = fgets(newLine, 100, instructionFile);
-        instructions[i] = progScanner(newLine);
-        currentLine++;
+        if (newLine != NULL) {
+            instructions[currentLine] = progScanner(newLine);
+            currentLine++;
+        }
     }
-
 
     return 0;
 }
