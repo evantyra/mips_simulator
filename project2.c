@@ -49,8 +49,6 @@ void syntax(char * instruction, char * opcode)
     printf(" paran left count = %i \n", paranLeftCount);
     printf(" paran right count = %i \n", paranRightCount);
 
-    return;
-
     if (strcmp("lw",opcode)==0||strcmp("sw",opcode)==0)
     {
         assert(commaCount==1);
@@ -73,17 +71,20 @@ char *progScanner(char* inputString)
     tempLine = (char *)malloc(100*sizeof(char *));
     char *space = " ";
 
-    char delimiters[]=", ";
+    char delimiters[]=", ()";
 
     char *copyInputString;
     strcpy(copyInputString, inputString);
 
     printf("inputString[]=%s\n", inputString);
-    tempLine = strtok(inputString, delimiters);
+    memcpy(tempLine, strtok(inputString, delimiters), 100);
     syntax(copyInputString, tempLine);
-    tempLine = strcat(tempLine, strtok(NULL, delimiters));
-    tempLine = strcat(tempLine, strtok(NULL, delimiters));
-    tempLine = strcat(tempLine, strtok(NULL, delimiters));
+    memcpy(&tempLine[strlen(tempLine)], space, 100);
+    memcpy(&tempLine[strlen(tempLine)], strtok(NULL, delimiters), 100);
+    memcpy(&tempLine[strlen(tempLine)], space, 100);
+    memcpy(&tempLine[strlen(tempLine)], strtok(NULL, delimiters), 100);
+    memcpy(&tempLine[strlen(tempLine)], space, 100);
+    memcpy(&tempLine[strlen(tempLine)], strtok(NULL, delimiters), 100);
 
     printf("Templine value = %s\n", tempLine);
 
@@ -145,12 +146,6 @@ int main()
         newLine = fgets(newLine, 100, instructionFile);
         instructions[i] = progScanner(newLine);
         currentLine++;
-    }
-
-     for(i=0; i<lineCount; i++)
-
-    {
-        printf("Line = %s \n", instructions[i]);
     }
 
 
