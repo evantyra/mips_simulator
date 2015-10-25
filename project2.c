@@ -11,22 +11,35 @@
 int programCounter;
 int canFetch;
 int busyRegister [32];
-struct Register A;
+int IFMemCountDown;
+int EXCountDown;
+const int multiplyTime;
+const int memoryAccessTime;
+
+
 
 struct Latch
 {
+    char * opcode;
     int rs;
     int rt;
     int rd;
-    int usefulCycleCount;
-    int cyclesCountDown;
+
     int hasUsefulData;
 };
+
 
 struct Register
 {
     int registerIndex;
     int registerValue;
+};
+
+struct RegisterArray
+{
+
+    struct Register registers[32];
+
 };
 
 void syntax(char * instruction, char * opcode)
