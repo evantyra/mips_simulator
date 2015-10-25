@@ -11,22 +11,35 @@
 int programCounter;
 int canFetch;
 int busyRegister [32];
-struct Register A;
+int IFMemCountDown;
+int EXCountDown;
+const int multiplyTime;
+const int memoryAccessTime;
+
+
 
 struct Latch
 {
+    char * opcode;
     int rs;
     int rt;
     int rd;
-    int usefulCycleCount;
-    int cyclesCountDown;
+
     int hasUsefulData;
 };
+
 
 struct Register
 {
     int registerIndex;
     int registerValue;
+};
+
+struct RegisterArray
+{
+
+    struct Register registers[32];
+
 };
 
 void syntax(char * instruction, char * opcode)
@@ -35,32 +48,49 @@ void syntax(char * instruction, char * opcode)
     int commaCount = 0;
     int paranLeftCount = 0;
     int paranRightCount = 0;
+    int leftParanPlace;
+    int rightParanPlace;
+    int firstCommaPlace=0;
+    int secondCommaPlace=0;
+
+    assert(instruction != NULL);
+    assert(instruction[0] !=',');
+    assert(opcode != NULL);
 
     for(i = 0; i < strlen(instruction); i++)
     {
         if(instruction[i] == ',') {
+                if(firstCommaPlace==0){
+                firstCommaPlace = i;
+            }
+            else if (firstCommaPlace!= 0 && secondCommaPlace == 0){
+                secondCommaPlace = i;
+            }
+
             commaCount++;
         }
 
-        else if(instruction[i]=='(') {
+        else if(instruction[i] == '(')
+        {
             paranLeftCount++;
+            leftParanPlace = i;
         }
-
         else if(instruction[i] == ')') {
             paranRightCount++;
+             rightParanPlace = i;
         }
     }
 
-    if (strcmp("lw",opcode) == 0 || strcmp("sw",opcode) == 0)
-    {
-        assert(commaCount == 1);
-        assert(paranLeftCount == 1);
-        assert(paranRightCount == 1);
+    if (strcmp("lw",opcode) == 0 || strcmp("sw",opcode) == 0) {
+        assert(commaCount==1);
+        assert(paranLeftCount==1);
+        assert(paranRightCount==1);
+        assert(rightParanPlace>leftParanPlace);
     }
     else if (strcmp("addi",opcode) == 0 || strcmp("add",opcode) == 0 || 
         strcmp("sub",opcode) == 0 || strcmp("mult",opcode) == 0 ||
-        strcmp("beq",opcode) == 0)
-    {
+        strcmp("beq",opcode) == 0) {
+        assert( (rightParanPlace - leftParanPlace) > 2);
         assert(paranLeftCount == 0);
         assert(paranRightCount == 0);
         assert(commaCount == 2);
