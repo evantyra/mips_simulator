@@ -23,25 +23,28 @@ struct Latch
     int hasUsefulData;
 };
 
-
+struct Register
+{
+    int registerIndex;
+    int registerValue;
+};
 
 void syntax(char * instruction, char * opcode)
 {
     int i;
-    int commaCount=0;
-    int paranLeftCount=0;
-    int paranRightCount=0;
+    int commaCount = 0;
+    int paranLeftCount = 0;
+    int paranRightCount = 0;
     int leftParanPlace;
     int rightParanPlace;
-     printf("instruction to syntax = %s \n",instruction);
-    for(i=0; i<strlen(instruction); i++)
-    {
-        assert(instruction[0] !=',');
-        assert(opcode != NULL);
-        if(instruction[i] ==',')
-        {
-            commaCount++;
 
+    assert(instruction[0] !=',');
+    assert(opcode != NULL);
+
+    for(i = 0; i < strlen(instruction); i++)
+    {
+        if(instruction[i] == ',') {
+            commaCount++;
         }
 
         else if(instruction[i] == '(')
@@ -49,33 +52,30 @@ void syntax(char * instruction, char * opcode)
             paranLeftCount++;
             leftParanPlace = i;
         }
-
-        else if(instruction[i] ==' )')
-        {
+        else if(instruction[i] == ')') {
             paranRightCount++;
              rightParanPlace = i;
         }
-
-
     }
-    printf(" opcode = %s \n",opcode);
-    printf(" comma count = %i \n",commaCount);
+    printf(" opcode = %s \n", opcode);
+    printf(" comma count = %i \n", commaCount);
     printf(" paran left count = %i \n", paranLeftCount);
     printf(" paran right count = %i \n", paranRightCount);
 
-    if (strcmp("lw",opcode)==0||strcmp("sw",opcode)==0)
+    if (strcmp("lw",opcode) == 0 || strcmp("sw",opcode) == 0)
     {
         assert(commaCount==1);
         assert(paranLeftCount==1);
         assert(paranRightCount==1);
         assert(rightParanPlace>leftParanPlace);
-
     }
-    if (strcmp("addi",opcode)==0||strcmp("add",opcode)==0||strcmp("sub",opcode)==0||strcmp("mult",opcode)==0||strcmp("beq",opcode)==0)
+    if (strcmp("addi",opcode) == 0 || strcmp("add",opcode) == 0 ||
+        strcmp("sub",opcode) == 0 || strcmp("mult",opcode) == 0 ||
+        strcmp("beq",opcode) == 0)
     {
-        assert(paranLeftCount==0);
-        assert(paranRightCount==0);
-        assert(commaCount==2);
+        assert(paranLeftCount == 0);
+        assert(paranRightCount == 0);
+        assert(commaCount == 2);
     }
 }
 
@@ -88,7 +88,7 @@ char *progScanner(char* inputString)
 
     char delimiters[]=", ()";
 
-    char *copyInputString=(char *)malloc(100*sizeof(char *));
+    char *copyInputString = (char *)malloc(100*sizeof(char *));
     strcpy(copyInputString, inputString);
 
     // Concatanates each part of the string after we check that it is in the correct format
@@ -103,12 +103,6 @@ char *progScanner(char* inputString)
 
     return tempLine;
 }
-
-struct Register
-{
-    int registerIndex;
-    int registerValue;
-};
 
 int main()
 {
@@ -148,6 +142,10 @@ int main()
             instructions[currentLine] = progScanner(newLine);
             currentLine++;
         }
+    }
+
+    for (i = 0; i < lineCount; i++) {
+        printf("%s\n", instructions[i]);
     }
 
     return 0;
