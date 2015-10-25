@@ -23,52 +23,51 @@ struct Latch
     int hasUsefulData;
 };
 
+struct Register
+{
+    int registerIndex;
+    int registerValue;
+};
+
 void syntax(char * instruction, char * opcode)
 {
     int i;
-    int commaCount=0;
-    int paranLeftCount=0;
-    int paranRightCount=0;
-     printf("instruction to syntax = %s \n",instruction);
-    for(i=0; i<strlen(instruction); i++)
-    {
-        if(instruction[i]==',')
-        {
-            commaCount++;
+    int commaCount = 0;
+    int paranLeftCount = 0;
+    int paranRightCount = 0;
 
+    for(i = 0; i < strlen(instruction); i++)
+    {
+        if(instruction[i] == ',') {
+            commaCount++;
         }
 
-        else if(instruction[i]=='(')
-        {
+        else if(instruction[i]=='(') {
             paranLeftCount++;
         }
 
-        else if(instruction[i]==')')
-        {
+        else if(instruction[i] == ')') {
             paranRightCount++;
         }
-
-
     }
-    printf(" opcode = %s \n",opcode);
-    printf(" comma count = %i \n",commaCount);
+    printf(" opcode = %s \n", opcode);
+    printf(" comma count = %i \n", commaCount);
     printf(" paran left count = %i \n", paranLeftCount);
     printf(" paran right count = %i \n", paranRightCount);
 
     if (strcmp("lw",opcode) == 0 || strcmp("sw",opcode) == 0)
     {
-        assert(commaCount==1);
-        assert(paranLeftCount==1);
-        assert(paranRightCount==1);
-
+        assert(commaCount == 1);
+        assert(paranLeftCount == 1);
+        assert(paranRightCount == 1);
     }
     if (strcmp("addi",opcode) == 0 || strcmp("add",opcode) == 0 || 
         strcmp("sub",opcode) == 0 || strcmp("mult",opcode) == 0 ||
         strcmp("beq",opcode) == 0)
     {
-        assert(paranLeftCount==0);
-        assert(paranRightCount==0);
-        assert(commaCount==2);
+        assert(paranLeftCount == 0);
+        assert(paranRightCount == 0);
+        assert(commaCount == 2);
     }
 }
 
@@ -81,7 +80,7 @@ char *progScanner(char* inputString)
 
     char delimiters[]=", ()";
 
-    char *copyInputString=(char *)malloc(100*sizeof(char *));
+    char *copyInputString = (char *)malloc(100*sizeof(char *));
     strcpy(copyInputString, inputString);
 
     // Concatanates each part of the string after we check that it is in the correct format
@@ -96,12 +95,6 @@ char *progScanner(char* inputString)
 
     return tempLine;
 }
-
-struct Register
-{
-    int registerIndex;
-    int registerValue;
-};
 
 int main()
 {
