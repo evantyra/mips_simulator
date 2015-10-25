@@ -37,13 +37,23 @@ void syntax(char * instruction, char * opcode)
     int paranRightCount = 0;
     int leftParanPlace;
     int rightParanPlace;
+    int firstCommaPlace=0;
+    int secondCommaPlace=0;
 
+    assert(instruction != NULL);
     assert(instruction[0] !=',');
     assert(opcode != NULL);
 
     for(i = 0; i < strlen(instruction); i++)
     {
         if(instruction[i] == ',') {
+                if(firstCommaPlace==0){
+                firstCommaPlace = i;
+            }
+            else if (firstCommaPlace!= 0 && secondCommaPlace == 0){
+                secondCommaPlace = i;
+            }
+
             commaCount++;
         }
 
@@ -73,6 +83,7 @@ void syntax(char * instruction, char * opcode)
         strcmp("sub",opcode) == 0 || strcmp("mult",opcode) == 0 ||
         strcmp("beq",opcode) == 0)
     {
+        assert( (rightParanPlace - leftParanPlace) > 2);
         assert(paranLeftCount == 0);
         assert(paranRightCount == 0);
         assert(commaCount == 2);
