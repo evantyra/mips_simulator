@@ -55,14 +55,16 @@ void syntax(char * instruction, char * opcode)
     printf(" paran left count = %i \n", paranLeftCount);
     printf(" paran right count = %i \n", paranRightCount);
 
-    if (strcmp("lw",opcode)==0||strcmp("sw",opcode)==0)
+    if (strcmp("lw",opcode) == 0 || strcmp("sw",opcode) == 0)
     {
         assert(commaCount==1);
         assert(paranLeftCount==1);
         assert(paranRightCount==1);
 
     }
-    if (strcmp("addi",opcode)==0||strcmp("add",opcode)==0||strcmp("sub",opcode)==0||strcmp("mult",opcode)==0||strcmp("beq",opcode)==0)
+    if (strcmp("addi",opcode) == 0 || strcmp("add",opcode) == 0 || 
+        strcmp("sub",opcode) == 0 || strcmp("mult",opcode) == 0 ||
+        strcmp("beq",opcode) == 0)
     {
         assert(paranLeftCount==0);
         assert(paranRightCount==0);
@@ -139,6 +141,10 @@ int main()
             instructions[currentLine] = progScanner(newLine);
             currentLine++;
         }
+    }
+
+    for (i = 0; i < lineCount; i++) {
+        printf("%s\n", instructions[i]);
     }
 
     return 0;
