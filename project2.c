@@ -23,29 +23,37 @@ struct Latch
     int hasUsefulData;
 };
 
+
+
 void syntax(char * instruction, char * opcode)
 {
     int i;
     int commaCount=0;
     int paranLeftCount=0;
     int paranRightCount=0;
+    int leftParanPlace;
+    int rightParanPlace;
      printf("instruction to syntax = %s \n",instruction);
     for(i=0; i<strlen(instruction); i++)
     {
-        if(instruction[i]==',')
+        assert(instruction[0] !=',');
+        assert(opcode != NULL);
+        if(instruction[i] ==',')
         {
             commaCount++;
 
         }
 
-        else if(instruction[i]=='(')
+        else if(instruction[i] == '(')
         {
             paranLeftCount++;
+            leftParanPlace = i;
         }
 
-        else if(instruction[i]==')')
+        else if(instruction[i] ==' )')
         {
             paranRightCount++;
+             rightParanPlace = i;
         }
 
 
@@ -60,6 +68,7 @@ void syntax(char * instruction, char * opcode)
         assert(commaCount==1);
         assert(paranLeftCount==1);
         assert(paranRightCount==1);
+        assert(rightParanPlace>leftParanPlace);
 
     }
     if (strcmp("addi",opcode)==0||strcmp("add",opcode)==0||strcmp("sub",opcode)==0||strcmp("mult",opcode)==0||strcmp("beq",opcode)==0)
