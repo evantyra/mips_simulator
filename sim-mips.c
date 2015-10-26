@@ -347,19 +347,15 @@ void WB() {
             printf("haltSimulation directive reached WB - Simulation Stopped\n");
             exit(0);
         }
-        else if (latches[3].heldInstruction.op == LW){
-            if 
+        else if (latches[3].heldInstruction.op == LW || latches[3].heldInstruction.op == ADDI) {
             registerArray[latches[3].heldInstruction.rt].value = latches[3].heldInstruction.result;
             registerArray[latches[3].heldInstruction.rt].isBeingWrittenTo = 0;
             latches[3].valid = 0;
         }
         else if (latches[3].heldInstruction.op == ADD || latches[3].heldInstruction.op == SUB ||
-                 latches[3].heldInstruction.op == MULT){
-            executeOperation(latches[3].heldInstruction);
-            latches[3].valid = 0;
-        }
-        else if (latches[3].heldInstruction.op == ADDI){
-            executeOperation(latches[3].heldInstruction);
+                 latches[3].heldInstruction.op == MULT) {
+            registerArray[latches[3].heldInstruction.rd].value = latches[3].heldInstruction.result;
+            registerArray[latches[3].heldInstruction.rd].isBeingWrittenTo = 0;
             latches[3].valid = 0;
         }
     }
