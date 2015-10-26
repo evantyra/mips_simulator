@@ -16,6 +16,7 @@ int programCounter;
 struct Register *registerArray;
 struct inst *instructionMem;
 struct Latch *latches; // [0] = IF-ID, [1] = ID-EX, [2] = EX-MEM, [3] = MEM-WB
+int memoryArray[32];
 int multiplyTime;
 int memoryAccessTime;
 int executeTime;
@@ -29,6 +30,7 @@ struct inst {
     int rt;
     int rd;
     int Imm;
+    int result;
 };
 
 struct Latch {
@@ -328,8 +330,39 @@ struct inst parser(char* inputString) {
     return parsedInstruction;
 }
 
-void WB() {
+// Executes in accordance to instruction passed through
+int executeOperation(struct inst instruction) {
+    if (instruction.op == LW) {
+        instruction.result = instruction.Imm + instruction.rs;
+        if (result >= 32 || result < 0) {
+            printf("Memory access: %d is invalid - Simulation Stopped\n", result);
+        }
+        return instruction.result;
+    }
+}
 
+void WB() {
+    if (latches[3].valid == 1) {
+        if (latches[3].heldInstruction.op == HALT) {
+            printf("haltSimulation directive reached WB - Simulation Stopped\n");
+            exit(0);
+        }
+        else if (latches[3].heldInstruction.op == LW){
+            if 
+            registerArray[latches[3].heldInstruction.rt].value = latches[3].heldInstruction.result;
+            registerArray[latches[3].heldInstruction.rt].isBeingWrittenTo = 0;
+            latches[3].valid = 0;
+        }
+        else if (latches[3].heldInstruction.op == ADD || latches[3].heldInstruction.op == SUB ||
+                 latches[3].heldInstruction.op == MULT){
+            executeOperation(latches[3].heldInstruction);
+            latches[3].valid = 0;
+        }
+        else if (latches[3].heldInstruction.op == ADDI){
+            executeOperation(latches[3].heldInstruction);
+            latches[3].valid = 0;
+        }
+    }
 }
 
 void MEM() {
@@ -427,6 +460,7 @@ int main(int argc, char *argv[])
         registerArray[i].value = 0;
         registerArray[i].valid = 0;
         registerArray[i].isBeingWrittenTo = 0;
+        memoryArray[i] = 0;
     }
     registerArray[0].valid = 1;
 
