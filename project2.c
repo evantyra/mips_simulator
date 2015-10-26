@@ -10,8 +10,7 @@
 
 int programCounter;
 int canFetch;
-int busyRegister [32];
-int registerArray[32];
+struct Register *registerArray;
 struct inst *instructionMem;
 int IFMemCountDown;
 int EXCountDown;
@@ -36,8 +35,8 @@ struct Latch {
 struct Register {
     int value;
     int valid;
-    int busy;
-}
+    int isBeingWrittenTo;
+};
 
 void syntax(char * instruction, char * opcode) {
     int i;
@@ -353,6 +352,15 @@ int main()
         }
     }
 
+    // Initiates Register array to be all invalid and all not being written to
+    registerArray= malloc(32*sizeof(struct Register));
+    for (i = 0; i < 32; i++) {
+        registerArray[i].value = 0;
+        registerArray[i].valid = 0;
+        registerArray[i].isBeingWrittenTo = 0;
+    }
+
+    // Initiation of instruction memory in accordance to number of instructions in read file
     instructionMem = malloc(lineCount*sizeof(struct inst));
     for (i = 0; i < lineCount; i++) {
         instructions[i] = regNumberConverter(instructions[i]);
