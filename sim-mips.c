@@ -26,9 +26,12 @@ enum opcode {ADD,ADDI,SUB,MULT,BEQ,LW,SW,HALT};
 
 struct inst {
     enum opcode op;
-    int rs;
-    int rt;
-    int rd;
+    int rsIndex;
+    int rsValue;
+    int rtIndex;
+    int rtValue;
+    int rdIndex;
+    int rdValue;
     int Imm;
     int result;
 };
@@ -295,36 +298,39 @@ struct inst parser(char* inputString) {
         parsedInstruction.op = SW;
     else if (strcmp(currentElement, "haltSimulation") == 0) {
         parsedInstruction.op = HALT;
-        parsedInstruction.rd = 0;
-        parsedInstruction.rs = 0;
-        parsedInstruction.rt = 0;
+        parsedInstruction.rdValue = 0;
+        parsedInstruction.rdIndex = 0;
+        parsedInstruction.rsValue = 0;
+        parsedInstruction.rsIndex = 0;
+        parsedInstruction.rtValue = 0;
+        parsedInstruction.rtIndex = 0;
         parsedInstruction.Imm = 0;
     }
 
     if (parsedInstruction.op == ADD ||
         parsedInstruction.op == SUB ||
         parsedInstruction.op == MULT) {
-        parsedInstruction.rd = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rs = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rt = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rdIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rsIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rtIndex = atoi(strtok(NULL, delimiters));
         parsedInstruction.Imm = 0;
     }
     else if (parsedInstruction.op == ADDI || parsedInstruction.op == BEQ) {
-        parsedInstruction.rt = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rs = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rtIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rsIndex = atoi(strtok(NULL, delimiters));
         parsedInstruction.Imm = atoi(strtok(NULL, delimiters));
         if (parsedInstruction.op == ADDI)
             if (parsedInstruction.Imm > 32767 || parsedInstruction.Imm < -32768){
                 printf("Integer added number greater than 16 bits - Simulator Stopped\n");
                 exit(1);
             }
-        parsedInstruction.rd = 0;
+        parsedInstruction.rdIndex = 0;
     }
     else if (parsedInstruction.op == LW || parsedInstruction.op == SW) {
-        parsedInstruction.rt = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rtIndex = atoi(strtok(NULL, delimiters));
         parsedInstruction.Imm = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rs = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rd = 0;
+        parsedInstruction.rsIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rdIndex = 0;
     }
 
     return parsedInstruction;
@@ -333,10 +339,11 @@ struct inst parser(char* inputString) {
 // Executes in accordance to instruction passed through
 int executeOperation(struct inst instruction) {
     if (instruction.op == LW) {
-        instruction.result = instruction.Imm + instruction.rs;
-        if (instruction.result >= 32 || instruction.result < 0) {
-            printf("Memory access: %d is invalid - Simulation Stopped\n", instruction.result);
-        }
+        instruction.result = instruction.Imm + instruction.rsValue;
+        return instruction.result;
+    }
+    if (instruction.op == SW) {
+        instruction.result = instruction.Imm + instruction.rsValue;
         return instruction.result;
     }
 }
@@ -348,21 +355,21 @@ void WB() {
             exit(0);
         }
         else if (latches[3].heldInstruction.op == LW || latches[3].heldInstruction.op == ADDI) {
-            registerArray[latches[3].heldInstruction.rt].value = latches[3].heldInstruction.result;
-            registerArray[latches[3].heldInstruction.rt].isBeingWrittenTo = 0;
+            registerArray[latches[3].heldInstruction.rtIndex].value = latches[3].heldInstruction.result;
+            registerArray[latches[3].heldInstruction.rtIndex].isBeingWrittenTo = 0;
             latches[3].valid = 0;
         }
         else if (latches[3].heldInstruction.op == ADD || latches[3].heldInstruction.op == SUB ||
                  latches[3].heldInstruction.op == MULT) {
-            registerArray[latches[3].heldInstruction.rd].value = latches[3].heldInstruction.result;
-            registerArray[latches[3].heldInstruction.rd].isBeingWrittenTo = 0;
+            registerArray[latches[3].heldInstruction.rdIndex].value = latches[3].heldInstruction.result;
+            registerArray[latches[3].heldInstruction.rdIndex].isBeingWrittenTo = 0;
             latches[3].valid = 0;
         }
     }
 }
 
 void MEM() {
-    static int memCD;
+    static int memCD = 0;
 
     if (memCD == 0) {
         if (latches[2].valid == 1) {
@@ -378,12 +385,29 @@ void MEM() {
 
         if (memCD == 0) {
             if (latches[2].heldInstruction.op == LW) {
+                if (latches[2].heldInstruction.result >= 32 || latches[2].heldInstruction.result < 0) {
+                    printf("Memory access: %d is invalid - Simulation Stopped\n",
+                            latches[2].heldInstruction.result);
+                    exit(0);
+                }
+                latches[2].heldInstruction.result = memoryArray[latches[2].heldInstruction.result];
                 latches[3].heldInstruction = latches[2].heldInstruction;
                 latches[3].valid = 1;
                 latches[2].valid = 0;
             }
             else if (latches[2].heldInstruction.op == SW) {
-
+                if (latches[2].heldInstruction.result >= 32 || latches[2].heldInstruction.result < 0) {
+                    printf("Memory access: %d is invalid - Simulation Stopped\n",
+                        latches[2].heldInstruction.result);
+                    exit(0);
+                }
+                memoryArray[latches[2].heldInstruction.result] = latches[2].heldInstruction.rtValue;
+                latches[2].valid = 0;
+            }
+            else {
+                latches[3].heldInstruction = latches[2].heldInstruction;
+                latches[3].valid = 1;
+                latches[2].valid = 0;
             }
         }
     }
