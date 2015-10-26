@@ -22,6 +22,7 @@ int memoryAccessTime;
 int executeTime;
 int utilization[5];
 int branchFlag = 0;
+int haltFlag = 0;
 
 enum opcode {ADD,ADDI,SUB,MULT,BEQ,LW,SW,HALT};
 
@@ -373,8 +374,8 @@ int executeOperation(struct inst instruction) {
 void WB() {
     if (latches[3].valid == 1) {
         if (latches[3].heldInstruction.op == HALT) {
-            printf("haltSimulation directive reached WB - Simulation Stopped\n");
-            exit(0);
+            printf("haltSimulation directive reached WB - Simulation Ended\n");
+            haltFlag = 1;
         }
         else if (latches[3].heldInstruction.op == LW || latches[3].heldInstruction.op == ADDI) {
             registerArray[latches[3].heldInstruction.rtIndex].value = latches[3].heldInstruction.result;
@@ -412,7 +413,7 @@ void MEM() {
                 if (latches[2].heldInstruction.result >= 32 || latches[2].heldInstruction.result < 0) {
                     printf("Memory access: %d is invalid - Simulation Stopped\n",
                             latches[2].heldInstruction.result);
-                    exit(0);
+                    haltFlag = 1;
                 }
                 latches[2].heldInstruction.result = memoryArray[latches[2].heldInstruction.result];
                 latches[3].heldInstruction = latches[2].heldInstruction;
@@ -423,7 +424,7 @@ void MEM() {
                 if (latches[2].heldInstruction.result >= 32 || latches[2].heldInstruction.result < 0) {
                     printf("Memory access: %d is invalid - Simulation Stopped\n",
                         latches[2].heldInstruction.result);
-                    exit(0);
+                    haltFlag = 1;
                 }
                 memoryArray[latches[2].heldInstruction.result] = latches[2].heldInstruction.rtValue;
                 latches[2].valid = 0;
@@ -613,10 +614,20 @@ int main(int argc, char *argv[])
 
     while (programCounter < lineCount * 4) {
         WB();
+        if (haltFlag == 1)
+            break;
         MEM();
+        if (haltFlag == 1)
+            break;
         EX();
+        if (haltFlag == 1)
+            break;
         ID();
+        if (haltFlag == 1)
+            break;
         IF();
+        if (haltFlag == 1)
+            break;
 
         // Waits for an enter before continuing during single mode
         if (sim_mode == SINGLE) {
