@@ -362,7 +362,29 @@ void WB() {
 }
 
 void MEM() {
+    static int memCD;
 
+    if (memCD == 0) {
+        if (latches[2].valid == 1) {
+            if (latches[2].heldInstruction.op == LW || latches[2].heldInstruction.op == SW)
+                memCD = memoryAccessTime;
+            else
+                memCD = 1;
+        }
+    }
+
+    if (memCD != 0) {
+        memCD--;
+
+        if (memCD == 0) {
+            if (latches[2].heldInstruction.op == LW) {
+                latches[3].heldInstruction = latches[2].heldInstruction;
+                latches[3].valid = 1;
+                latches[2].valid = 0;
+            }
+            else if 
+        }
+    }
 }
 
 void EX() {
