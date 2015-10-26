@@ -338,9 +338,9 @@ struct inst parser(char* inputString) {
     else if (strcmp(currentElement, "haltSimulation") == 0)
     {
         parsedInstruction.op = HALT;
-        parsedInstruction.rd = 0;
-        parsedInstruction.rs = 0;
-        parsedInstruction.rt = 0;
+        parsedInstruction.rdIndex = 0;
+        parsedInstruction.rsIndex = 0;
+        parsedInstruction.rtIndex = 0;
         parsedInstruction.Imm = 0;
     }
 
@@ -348,15 +348,15 @@ struct inst parser(char* inputString) {
             parsedInstruction.op == SUB ||
             parsedInstruction.op == MULT)
     {
-        parsedInstruction.rd = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rs = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rt = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rdIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rsIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rtIndex = atoi(strtok(NULL, delimiters));
         parsedInstruction.Imm = 0;
     }
     else if (parsedInstruction.op == ADDI || parsedInstruction.op == BEQ)
     {
-        parsedInstruction.rt = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rs = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rtIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rsIndex = atoi(strtok(NULL, delimiters));
         parsedInstruction.Imm = atoi(strtok(NULL, delimiters));
         if (parsedInstruction.op == ADDI)
             if (parsedInstruction.Imm > 32767 || parsedInstruction.Imm < -32768)
@@ -364,14 +364,14 @@ struct inst parser(char* inputString) {
                 printf("Integer added number greater than 16 bits - Simulator Stopped\n");
                 exit(1);
             }
-        parsedInstruction.rd = 0;
+        parsedInstruction.rdIndex = 0;
     }
     else if (parsedInstruction.op == LW || parsedInstruction.op == SW)
     {
-        parsedInstruction.rt = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rtIndex = atoi(strtok(NULL, delimiters));
         parsedInstruction.Imm = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rs = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rd = 0;
+        parsedInstruction.rsIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rdIndex = 0;
     }
 
     return parsedInstruction;
@@ -554,6 +554,37 @@ void EX() {
     return;
 }
 
+void ID() {
+    if(latches[0].valid == 1 && latches[1].valid == 0)
+    {
+        if(RawCheck(latches[0].heldInstruction) == 1)
+        {
+            return;
+        }
+        else if(latches[0].heldInstruction.op == BEQ || latches[0].heldInstruction.op == HALT)
+        {
+            branchFlag == 1;
+            latches[1].heldInstruction = latches[0].heldInstruction;
+            latches[0].valid = 0;
+        }
+        else
+        {
+            if(latches[0].heldInstruction.op == LW || latches[0].heldInstruction.op == SW || latches[0].heldInstruction.op == ADDI  )
+            {
+                registerArray[latches[0].heldInstruction.rtIndex].isBeingWrittenTo = 1;
+            }
+            if(latches[0].heldInstruction.op == ADD ||latches[0].heldInstruction.op == SUB ||latches[0].heldInstruction.op == MULT ||latches[0].heldInstruction.op == BEQ ||latches[0].heldInstruction.op )
+            {
+                registerArray[latches[0].heldInstruction.rdIndex].isBeingWrittenTo = 1;
+            }
+            latches[1].heldInstruction = latches[0].heldInstruction;
+            latches[0].valid = 0;
+        }
+    }
+
+    return;
+}
+
 void IF () {
     static int hasData = 0;
     static int IFCD = 0;
@@ -608,37 +639,6 @@ void IF () {
         }
         return;
     }
-}
-
-void ID() {
-    if(latches[0].valid == 1 && latches[1].valid == 0)
-    {
-        if(RawCheck(latches[0].heldInstruction) == 1)
-        {
-            return;
-        }
-        else if(latches[0].heldInstruction.op == BEQ || latches[0].heldInstruction.op == HALT)
-        {
-            branchFlag == 1;
-            latches[1].heldInstruction = latches[0].heldInstruction;
-            latches[0].valid = 0;
-        }
-        else
-        {
-            if(latches[0].heldInstruction.op == LW || latches[0].heldInstruction.op == SW || latches[0].heldInstruction.op == ADDI  )
-            {
-                registerArray[latches[0].heldInstruction.rtIndex].isBeingWrittenTo = 1;
-            }
-            if(latches[0].heldInstruction.op == ADD ||latches[0].heldInstruction.op == SUB ||latches[0].heldInstruction.op == MULT ||latches[0].heldInstruction.op == BEQ ||latches[0].heldInstruction.op )
-            {
-                registerArray[latches[0].heldInstruction.rdIndex].isBeingWrittenTo = 1;
-            }
-            latches[1].heldInstruction = latches[0].heldInstruction;
-            latches[0].valid = 0;
-        }
-    }
-
-    return;
 }
 
 int main(int argc, char *argv[]) {
