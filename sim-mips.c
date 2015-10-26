@@ -15,6 +15,7 @@
 int programCounter;
 struct Register *registerArray;
 struct inst *instructionMem;
+struct Latch *latches; // [0] = IF-ID, [1] = ID-EX, [2] = EX-MEM, [3] = MEM-WB
 int multiplyTime;
 int memoryAccessTime;
 int executeTime;
@@ -32,7 +33,7 @@ struct inst {
 
 struct Latch {
     struct inst heldInstruction;
-    int hasUsefulData;
+    int valid;
 };
 
 struct Register {
@@ -439,10 +440,18 @@ int main(int argc, char *argv[])
     }
 
     // Latch and utilization counter initialization
+    latches = malloc(4*sizeof(struct Latch))
+    for (i = 0; i < 4; i++)
+        latches[i].valid = 0;
     for (i = 0; i < 5; i++)
         utilization[i] = 0;
 
     while (programCounter < lineCount * 4) {
+        WB();
+        MEM();
+        EX();
+        ID();
+        IF();
 
         // Waits for an enter before continuing during single mode
         if (sim_mode == SINGLE) {
