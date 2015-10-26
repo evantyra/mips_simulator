@@ -334,8 +334,8 @@ struct inst parser(char* inputString) {
 int executeOperation(struct inst instruction) {
     if (instruction.op == LW) {
         instruction.result = instruction.Imm + instruction.rs;
-        if (result >= 32 || result < 0) {
-            printf("Memory access: %d is invalid - Simulation Stopped\n", result);
+        if (instruction.result >= 32 || instruction.result < 0) {
+            printf("Memory access: %d is invalid - Simulation Stopped\n", instruction.result);
         }
         return instruction.result;
     }
@@ -382,7 +382,9 @@ void MEM() {
                 latches[3].valid = 1;
                 latches[2].valid = 0;
             }
-            else if 
+            else if (latches[2].heldInstruction.op == SW) {
+
+            }
         }
     }
 }
@@ -492,7 +494,7 @@ int main(int argc, char *argv[])
     }
 
     // Latch and utilization counter initialization
-    latches = malloc(4*sizeof(struct Latch))
+    latches = malloc(4*sizeof(struct Latch));
     for (i = 0; i < 4; i++)
         latches[i].valid = 0;
     for (i = 0; i < 5; i++)
