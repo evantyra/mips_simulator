@@ -377,10 +377,11 @@ int executeOperation(struct inst instruction) {
 }
 
 void WB() {
+    // Executes WB accordingly
     if (latches[3].valid == 1) {
         if (latches[3].heldInstruction.op == HALT) {
             printf("haltSimulation directive reached WB - Simulation Ended\n");
-            haltFlag = 1;
+            haltFlag = 1;   // Ends program with writeout if halt directive read
         }
         else if (latches[3].heldInstruction.op == LW || latches[3].heldInstruction.op == ADDI) {
             registerArray[latches[3].heldInstruction.rtIndex].value = latches[3].heldInstruction.result;
@@ -401,6 +402,8 @@ void WB() {
 void MEM() {
     static int memCD = 0;
 
+    // If memCD is 0, then the mem stage is ready to pull a next instruction if the EX-MEM
+    // latch has a valid instruction
     if (memCD == 0) {
         if (latches[2].valid == 1) {
             if (latches[2].heldInstruction.op == LW || latches[2].heldInstruction.op == SW)
@@ -410,15 +413,17 @@ void MEM() {
         }
     }
 
+    // Decrements memCD if > 0, and if memCD is then equal to 0, execute the instruction accordingly
     if (memCD != 0) {
         memCD--;
 
         if (memCD == 0) {
+            // Executes load word or SW, checks for out of bounds of memory error
             if (latches[2].heldInstruction.op == LW) {
                 if (latches[2].heldInstruction.result >= 32 || latches[2].heldInstruction.result < 0) {
                     printf("Memory access: %d is invalid - Simulation Stopped\n",
                             latches[2].heldInstruction.result);
-                    haltFlag = 1;
+                    haltFlag = 1;   // Used to stop program but allow writeout
                 }
                 latches[2].heldInstruction.result = memoryArray[latches[2].heldInstruction.result];
                 latches[3].heldInstruction = latches[2].heldInstruction;
@@ -429,12 +434,12 @@ void MEM() {
                 if (latches[2].heldInstruction.result >= 32 || latches[2].heldInstruction.result < 0) {
                     printf("Memory access: %d is invalid - Simulation Stopped\n",
                         latches[2].heldInstruction.result);
-                    haltFlag = 1;
+                    haltFlag = 1;   // Used to stop program but allow writeout
                 }
                 memoryArray[latches[2].heldInstruction.result] = latches[2].heldInstruction.rtValue;
                 latches[2].valid = 0;
             }
-            else {
+            else {  // A simple latch transfer is needed if not SW or LW
                 latches[3].heldInstruction = latches[2].heldInstruction;
                 latches[3].valid = 1;
                 latches[2].valid = 0;
@@ -457,19 +462,23 @@ void EX() {
         // Decrement counter
         exCD--;
 
+        // If number of cycles needed has passed, check for equal register values,
+        // If true, increase program counter, in either case the ID-EX mem latch
+        // is invalidated and the branch flag is set to false
         if (exCD == 0) {
-            if (executeOperation(latches[1].heldInstruction) == 1) {
+            if (executeOperation(latches[1].heldInstruction) == 1)
                 programCounter += latches[1].heldInstruction.Imm;
-                latches[1].valid = 0;
-                branchFlag = 0;
-                hasData = 0;
-            }
+            latches[1].valid = 0;
+            branchFlag = 0;
+            hasData = 0;
         }
         return;
     }
 
-    // Non branch instruction logic
+    // This if statement is used for bringing in instructions and moving on stalled instructions
     if (exCD == 0) {
+        // If data is held since it wasn't able to move forward due to a mem backup
+        // Push the instruction into the next latch and validate/invalidate accordingly
         if (hasData == 1 && latches[2].valid == 0) {
             latches[2].heldInstruction = latches[1].heldInstruction;
             latches[2].valid = 1;
@@ -477,6 +486,8 @@ void EX() {
             hasData = 0;
             return;
         }
+        // If there is no data being held in the execution stage, and there is a valid
+        // instruction in the ID-EX latch, start the execution of that instruction
         else if (hasData == 0 && latches[1].valid == 1) {
             if (latches[1].heldInstruction.op == MULT)
                 exCD = multiplyTime;
@@ -489,6 +500,10 @@ void EX() {
 
     exCD--;
 
+    // If an instruction is done being executed, check for validity in the next latch,
+    // if the next latch instruction is invalid, push the instruction into the next latch,
+    // otherwise keep it held in the previous latch, perform the executeOperation and signal
+    // that there is data being held in this latch and is ready to be pushed when ready
     if (exCD == 0) {
         if (latches[2].valid == 0) {
             latches[2].heldInstruction.result = executeOperation(latches[2].heldInstruction);
