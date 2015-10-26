@@ -627,7 +627,6 @@ int main(int argc, char *argv[])
             }
 
             printf("%d\n", programCounter);
-            programCounter++; // DEBUG WILL BE CHANGED
             sim_counter++;
             printf("press ENTER to continue\n");
             while(getchar() != '\n');
