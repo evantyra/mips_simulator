@@ -11,39 +11,35 @@
 int programCounter;
 int canFetch;
 int busyRegister [32];
+int registerArray[32];
+struct inst *instructionMem;
 int IFMemCountDown;
 int EXCountDown;
 const int multiplyTime;
 const int memoryAccessTime;
 
+enum opcode {ADD,ADDI,SUB,MULT,BEQ,LW,SW};
 
-
-struct Latch
-{
-    char * opcode;
+struct inst {
+    enum opcode op;
     int rs;
     int rt;
     int rd;
+    int Imm;
+};
 
+struct Latch {
+    struct inst heldInstruction;
     int hasUsefulData;
 };
 
+struct Register {
+    int value;
+    int valid;
+    int busy;
+}
 
-struct Register
-{
-    int registerIndex;
-    int registerValue;
-};
-
-struct RegisterArray
-{
-
-    struct Register registers[32];
-
-};
-
-void syntax(char * instruction, char * opcode)
-{
+void syntax(char * instruction, char * opcode) {
     int i;
     int commaCount = 0;
     int paranLeftCount = 0;
@@ -90,7 +86,7 @@ void syntax(char * instruction, char * opcode)
     else if (strcmp("addi",opcode) == 0 || strcmp("add",opcode) == 0 || 
         strcmp("sub",opcode) == 0 || strcmp("mult",opcode) == 0 ||
         strcmp("beq",opcode) == 0) {
-        assert( (rightParanPlace - leftParanPlace) > 2);
+        assert( (secondCommaPlace - firstCommaPlace) > 2);
         assert(paranLeftCount == 0);
         assert(paranRightCount == 0);
         assert(commaCount == 2);
@@ -98,8 +94,7 @@ void syntax(char * instruction, char * opcode)
 }
 
 // Reads line by line and looks for syntax
-char *progScanner(char* inputString)
-{
+char *progScanner(char* inputString) {
     char *tempLine = (char *)malloc(100*sizeof(char *));
     char *space = " ";
 
@@ -265,6 +260,59 @@ char *regNumberConverter(char* inputString) {
     return returnLine;
 }
 
+struct inst parser(char* inputString) {
+    struct inst parsedInstruction;
+    char delimiters[] = " ";
+    int Imm;
+
+    char *currentElement = (char *)malloc(100*sizeof(char *));
+    memcpy(currentElement, strtok(inputString, delimiters), 100);
+
+
+    if (strcmp(currentElement,"add") == 0)
+        parsedInstruction.op = ADD;
+    else if (strcmp(currentElement,"addi") == 0)
+        parsedInstruction.op = ADDI;
+    else if (strcmp(currentElement,"sub") == 0)
+        parsedInstruction.op = SUB;
+    else if (strcmp(currentElement,"mult") == 0)
+        parsedInstruction.op = MULT;
+    else if (strcmp(currentElement,"beq") == 0)
+        parsedInstruction.op = BEQ;
+    else if (strcmp(currentElement,"lw") == 0)
+        parsedInstruction.op = LW;
+    else if (strcmp(currentElement,"sw") == 0)
+        parsedInstruction.op = SW;
+
+    if (parsedInstruction.op == ADD ||
+        parsedInstruction.op == SUB ||
+        parsedInstruction.op == MULT) {
+        parsedInstruction.rd = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rs = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rt = atoi(strtok(NULL, delimiters));
+        parsedInstruction.Imm = 0;
+    }
+    else if (parsedInstruction.op == ADDI || parsedInstruction.op == BEQ) {
+        parsedInstruction.rt = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rs = atoi(strtok(NULL, delimiters));
+        parsedInstruction.Imm = atoi(strtok(NULL, delimiters));
+        if (parsedInstruction.op == ADDI)
+            if (parsedInstruction.Imm > 65536){
+                printf("Integer added number greater than 16 bits - Simulator Stopped\n");
+                exit(1);
+            }
+        parsedInstruction.rd = 0;
+    }
+    else if (parsedInstruction.op == LW || parsedInstruction.op == SW) {
+        parsedInstruction.rt = atoi(strtok(NULL, delimiters));
+        parsedInstruction.Imm = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rs = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rd = 0;
+    }
+
+    return parsedInstruction;
+}
+
 int main()
 {
     // Initiation of variables
@@ -305,9 +353,12 @@ int main()
         }
     }
 
+    instructionMem = malloc(lineCount*sizeof(struct inst));
     for (i = 0; i < lineCount; i++) {
         instructions[i] = regNumberConverter(instructions[i]);
-        printf("%s\n", instructions[i]);
+        instructionMem[i] = parser(instructions[i]);
+        printf("Instruction = %d %d %d %d %d \n", instructionMem[i].op, instructionMem[i].rs,
+                instructionMem[i].rt, instructionMem[i].rd, instructionMem[i].Imm);
     }
 
     return 0;
