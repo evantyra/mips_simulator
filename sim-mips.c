@@ -1,6 +1,11 @@
 // Authored by Patrick Sullivan
 // Tested by Evan Tyra
 
+/* TODO:
+    - UTILIZATION COUNTERS
+    - OUT OF BOUND CHECK FOR INSTRUCTION MEMORY
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -21,7 +26,12 @@ int multiplyTime;
 int memoryAccessTime;
 int executeTime;
 int utilization[5];
+<<<<<<< HEAD
 int branchFlag;
+=======
+int branchFlag = 0;
+int haltFlag = 0;
+>>>>>>> 4c58466118becc385185f4bc8249d4dccc6a2b38
 
 enum opcode {ADD,ADDI,SUB,MULT,BEQ,LW,SW,HALT};
 
@@ -376,6 +386,7 @@ int RawCheck(struct inst instruction)
             parsedInstruction.rd = 0;
         }
 
+<<<<<<< HEAD
         return parsedInstruction;
     }
 
@@ -455,6 +466,123 @@ int RawCheck(struct inst instruction)
 
     void EX()
     {
+=======
+    char *currentElement = (char *)malloc(100*sizeof(char *));
+    memcpy(currentElement, strtok(inputString, delimiters), 100);
+
+
+    if (strcmp(currentElement, "add") == 0)
+        parsedInstruction.op = ADD;
+    else if (strcmp(currentElement, "addi") == 0)
+        parsedInstruction.op = ADDI;
+    else if (strcmp(currentElement, "sub") == 0)
+        parsedInstruction.op = SUB;
+    else if (strcmp(currentElement, "mult") == 0)
+        parsedInstruction.op = MULT;
+    else if (strcmp(currentElement, "beq") == 0)
+        parsedInstruction.op = BEQ;
+    else if (strcmp(currentElement, "lw") == 0)
+        parsedInstruction.op = LW;
+    else if (strcmp(currentElement, "sw") == 0)
+        parsedInstruction.op = SW;
+    else if (strcmp(currentElement, "haltSimulation") == 0) {
+        parsedInstruction.op = HALT;
+        parsedInstruction.rdValue = 0;
+        parsedInstruction.rdIndex = 0;
+        parsedInstruction.rsValue = 0;
+        parsedInstruction.rsIndex = 0;
+        parsedInstruction.rtValue = 0;
+        parsedInstruction.rtIndex = 0;
+        parsedInstruction.Imm = 0;
+    }
+
+    if (parsedInstruction.op == ADD ||
+        parsedInstruction.op == SUB ||
+        parsedInstruction.op == MULT) {
+        parsedInstruction.rdIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rsIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rtIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.Imm = 0;
+    }
+    else if (parsedInstruction.op == ADDI || parsedInstruction.op == BEQ) {
+        parsedInstruction.rtIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rsIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.Imm = atoi(strtok(NULL, delimiters));
+        if (parsedInstruction.op == ADDI)
+            if (parsedInstruction.Imm > 32767 || parsedInstruction.Imm < -32768){
+                printf("Integer added number greater than 16 bits - Simulator Stopped\n");
+                exit(1);
+            }
+        parsedInstruction.rdIndex = 0;
+    }
+    else if (parsedInstruction.op == LW || parsedInstruction.op == SW) {
+        parsedInstruction.rtIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.Imm = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rsIndex = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rdIndex = 0;
+    }
+
+    return parsedInstruction;
+}
+
+// Executes in accordance to instruction passed through
+int executeOperation(struct inst instruction) {
+    if (instruction.op == LW) {
+        instruction.result = instruction.Imm + instruction.rsValue;
+        return instruction.result;
+    }
+    if (instruction.op == SW) {
+        instruction.result = instruction.Imm + instruction.rsValue;
+        return instruction.result;
+    }
+    if (instruction.op == BEQ) {
+        if (instruction.rtValue == instruction.rsValue)
+            return 1;
+        else
+            return 0;
+    }
+    if (instruction.op == MULT) {
+        return instruction.rtValue * instruction.rsValue;
+    }
+    if (instruction.op == ADD) {
+        return instruction.rtValue + instruction.rsValue;
+    }
+    if (instruction.op == ADDI) {
+        return instruction.Imm + instruction.rsValue;
+    }
+    if (instruction.op == SUB) {
+        return instruction.rsValue - instruction.rtValue;
+    }
+    if (instruction.op == HALT) {
+        return 0;
+    }
+}
+
+void WB() {
+    if (latches[3].valid == 1) {
+        if (latches[3].heldInstruction.op == HALT) {
+            printf("haltSimulation directive reached WB - Simulation Ended\n");
+            haltFlag = 1;
+        }
+        else if (latches[3].heldInstruction.op == LW || latches[3].heldInstruction.op == ADDI) {
+            registerArray[latches[3].heldInstruction.rtIndex].value = latches[3].heldInstruction.result;
+            registerArray[latches[3].heldInstruction.rtIndex].isBeingWrittenTo = 0;
+            latches[3].valid = 0;
+        }
+        else if (latches[3].heldInstruction.op == ADD || latches[3].heldInstruction.op == SUB ||
+                 latches[3].heldInstruction.op == MULT) {
+            registerArray[latches[3].heldInstruction.rdIndex].value = latches[3].heldInstruction.result;
+            registerArray[latches[3].heldInstruction.rdIndex].isBeingWrittenTo = 0;
+            latches[3].valid = 0;
+        }
+    }
+
+    return;
+}
+
+void MEM() {
+    static int memCD = 0;
+>>>>>>> 4c58466118becc385185f4bc8249d4dccc6a2b38
 
     }
     void IF ()
@@ -481,6 +609,7 @@ int RawCheck(struct inst instruction)
                 else return;
 
 
+<<<<<<< HEAD
             }
             if(latches[0].valid==0 && hasData == 1)
             {
@@ -496,6 +625,33 @@ int RawCheck(struct inst instruction)
             {
                 IFCD = memoryAccessTime;
 
+=======
+        if (memCD == 0) {
+            if (latches[2].heldInstruction.op == LW) {
+                if (latches[2].heldInstruction.result >= 32 || latches[2].heldInstruction.result < 0) {
+                    printf("Memory access: %d is invalid - Simulation Stopped\n",
+                            latches[2].heldInstruction.result);
+                    haltFlag = 1;
+                }
+                latches[2].heldInstruction.result = memoryArray[latches[2].heldInstruction.result];
+                latches[3].heldInstruction = latches[2].heldInstruction;
+                latches[3].valid = 1;
+                latches[2].valid = 0;
+            }
+            else if (latches[2].heldInstruction.op == SW) {
+                if (latches[2].heldInstruction.result >= 32 || latches[2].heldInstruction.result < 0) {
+                    printf("Memory access: %d is invalid - Simulation Stopped\n",
+                        latches[2].heldInstruction.result);
+                    haltFlag = 1;
+                }
+                memoryArray[latches[2].heldInstruction.result] = latches[2].heldInstruction.rtValue;
+                latches[2].valid = 0;
+            }
+            else {
+                latches[3].heldInstruction = latches[2].heldInstruction;
+                latches[3].valid = 1;
+                latches[2].valid = 0;
+>>>>>>> 4c58466118becc385185f4bc8249d4dccc6a2b38
             }
         }
         if (IFCD != 0)
@@ -516,6 +672,7 @@ int RawCheck(struct inst instruction)
         }
 
     }
+<<<<<<< HEAD
 
     void ID()
     {
@@ -548,6 +705,71 @@ int RawCheck(struct inst instruction)
 
         return;
     }
+=======
+
+    return;
+}
+
+void EX() {
+    static int exCD = 0;
+    static int hasData = 0;
+
+    // Branch instruction logic
+    if (latches[1].heldInstruction.op == BEQ) {
+        if (exCD == 0)
+            exCD = executeTime;
+
+        // Decrement counter
+        exCD--;
+
+        if (exCD == 0) {
+            if (executeOperation(latches[1].heldInstruction) == 1) {
+                programCounter += latches[1].heldInstruction.Imm;
+                latches[1].valid = 0;
+                branchFlag = 0;
+                hasData = 0;
+            }
+        }
+        return;
+    }
+
+    // Non branch instruction logic
+    if (exCD == 0) {
+        if (hasData == 1 && latches[2].valid == 0) {
+            latches[2].heldInstruction = latches[1].heldInstruction;
+            latches[2].valid = 1;
+            latches[1].valid = 0;
+            hasData = 0;
+            return;
+        }
+        else if (hasData == 0 && latches[1].valid == 1) {
+            if (latches[1].heldInstruction.op == MULT)
+                exCD = multiplyTime;
+            else if (latches[1].heldInstruction.op == HALT)
+                exCD = 1;
+            else
+                exCD = executeTime;
+        }
+    }
+
+    exCD--;
+
+    if (exCD == 0) {
+        if (latches[2].valid == 0) {
+            latches[2].heldInstruction.result = executeOperation(latches[2].heldInstruction);
+            latches[3].heldInstruction = latches[2].heldInstruction;
+            latches[2].valid = 0;
+            latches[3].valid = 1;
+        }
+        else {
+            hasData = 1;
+            latches[2].heldInstruction.result = executeOperation(latches[2].heldInstruction);
+        }
+    }
+
+    return;
+}
+>>>>>>> 4c58466118becc385185f4bc8249d4dccc6a2b38
 
 
     int main(int argc, char *argv[])
@@ -601,6 +823,36 @@ int RawCheck(struct inst instruction)
             printf("Cannot create output file\n");
             exit(0);
         }
+<<<<<<< HEAD
+=======
+        
+        multiplyTime = atoi(argv[2]);
+        executeTime = atoi(argv[3]);
+        memoryAccessTime = atoi(argv[4]);
+
+        assert (multiplyTime > 0);
+        assert (executeTime > 0);
+        assert (memoryAccessTime > 0);
+
+        instructionFile = fopen(argv[5],"r");
+        outputFile = fopen(argv[6],"w");
+        
+    }
+    
+    else{
+        printf("Usage: ./sim-mips -s m n c input_name output_name (single-sysle mode)\n or \n ./sim-mips -b m n c input_name  output_name(batch mode)\n");
+        printf("m,n,c stand for number of cycles needed by multiplication, other operation, and memory access, respectively\n");
+        exit(0);
+    }
+    if(instructionFile == NULL){
+        printf("Unable to open input or output file\n");
+        exit(0);
+    }
+    if(outputFile == NULL){
+        printf("Cannot create output file\n");
+        exit(0);
+    }
+>>>>>>> 4c58466118becc385185f4bc8249d4dccc6a2b38
 
         // Reads through file once to check for number of lines
         int lineCount = 0;
@@ -643,6 +895,7 @@ int RawCheck(struct inst instruction)
         }
         registerArray[0].valid = 1;
 
+<<<<<<< HEAD
         // Initiation of instruction memory in accordance to number of instructions in read file
         instructionMem = malloc(lineCount*sizeof(struct inst));
         for (i = 0; i < lineCount; i++)
@@ -684,6 +937,44 @@ int RawCheck(struct inst instruction)
                 printf("press ENTER to continue\n");
                 while(getchar() != '\n');
             }
+=======
+    // Latch and utilization counter initialization
+    latches = malloc(4*sizeof(struct Latch));
+    for (i = 0; i < 4; i++)
+        latches[i].valid = 0;
+    for (i = 0; i < 5; i++)
+        utilization[i] = 0;
+
+    while (programCounter < lineCount * 4) {
+        WB();
+        if (haltFlag == 1)
+            break;
+        MEM();
+        if (haltFlag == 1)
+            break;
+        EX();
+        if (haltFlag == 1)
+            break;
+        ID();
+        if (haltFlag == 1)
+            break;
+        IF();
+        if (haltFlag == 1)
+            break;
+
+        // Waits for an enter before continuing during single mode
+        if (sim_mode == SINGLE) {
+            printf("Cycle: %d \n",sim_counter);
+
+            for (i = 1; i < REG_NUM; i++){
+                printf("%d  ", registerArray[i].value);
+            }
+
+            printf("%d\n", programCounter);
+            sim_counter++;
+            printf("press ENTER to continue\n");
+            while(getchar() != '\n');
+>>>>>>> 4c58466118becc385185f4bc8249d4dccc6a2b38
         }
 
         if(sim_mode == BATCH)
