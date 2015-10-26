@@ -11,14 +11,6 @@
 #define BATCH 0
 #define REG_NUM 32
 main (int argc, char *argv[]){
-	int sim_mode=0;//mode flag, 1 for single-cycle, 0 for batch
-	int c,m,n;
-	int i;//for loop counter
-	long mips_reg[REG_NUM];
-	long pgm_c=0;//program counter
-	long sim_cycle=0;//simulation cycle counter
-	//define your own counter for the usage of each pipeline stage here
-	
 	int test_counter=0;
 	FILE *input=NULL;
 	FILE *output=NULL;

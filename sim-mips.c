@@ -8,16 +8,19 @@
 #include <string.h>
 #include <memory.h>
 
+#define SINGLE 1
+#define BATCH 0
+#define REG_NUM 32
+
 int programCounter;
-int canFetch;
 struct Register *registerArray;
 struct inst *instructionMem;
-int IFMemCountDown;
-int EXCountDown;
-const int multiplyTime;
-const int memoryAccessTime;
+int multiplyTime;
+int memoryAccessTime;
+int executeTime;
+int utilization[5];
 
-enum opcode {ADD,ADDI,SUB,MULT,BEQ,LW,SW};
+enum opcode {ADD,ADDI,SUB,MULT,BEQ,LW,SW,HALT};
 
 struct inst {
     enum opcode op;
@@ -104,7 +107,10 @@ char *progScanner(char* inputString) {
 
     // Concatanates each part of the string after we check that it is in the correct format
     memcpy(tempLine, strtok(inputString, delimiters), 100);
-    syntax(copyInputString, tempLine);
+    if (strcmp("haltSimulation", tempLine) != 0)
+        syntax(copyInputString, tempLine);
+    else
+        return tempLine;
     memcpy(&tempLine[strlen(tempLine)], space, 100);
     memcpy(&tempLine[strlen(tempLine)], strtok(NULL, delimiters), 100);
     memcpy(&tempLine[strlen(tempLine)], space, 100);
@@ -243,6 +249,8 @@ char *regNumberConverter(char* inputString) {
 
         return returnLine;
     }
+    else if (strcmp("haltSimulation", returnLine) == 0)
+        return returnLine;
 
     // Register
     memcpy(&returnLine[strlen(returnLine)], space, 100);
@@ -268,20 +276,27 @@ struct inst parser(char* inputString) {
     memcpy(currentElement, strtok(inputString, delimiters), 100);
 
 
-    if (strcmp(currentElement,"add") == 0)
+    if (strcmp(currentElement, "add") == 0)
         parsedInstruction.op = ADD;
-    else if (strcmp(currentElement,"addi") == 0)
+    else if (strcmp(currentElement, "addi") == 0)
         parsedInstruction.op = ADDI;
-    else if (strcmp(currentElement,"sub") == 0)
+    else if (strcmp(currentElement, "sub") == 0)
         parsedInstruction.op = SUB;
-    else if (strcmp(currentElement,"mult") == 0)
+    else if (strcmp(currentElement, "mult") == 0)
         parsedInstruction.op = MULT;
-    else if (strcmp(currentElement,"beq") == 0)
+    else if (strcmp(currentElement, "beq") == 0)
         parsedInstruction.op = BEQ;
-    else if (strcmp(currentElement,"lw") == 0)
+    else if (strcmp(currentElement, "lw") == 0)
         parsedInstruction.op = LW;
-    else if (strcmp(currentElement,"sw") == 0)
+    else if (strcmp(currentElement, "sw") == 0)
         parsedInstruction.op = SW;
+    else if (strcmp(currentElement, "haltSimulation") == 0) {
+        parsedInstruction.op = HALT;
+        parsedInstruction.rd = 0;
+        parsedInstruction.rs = 0;
+        parsedInstruction.rt = 0;
+        parsedInstruction.Imm = 0;
+    }
 
     if (parsedInstruction.op == ADD ||
         parsedInstruction.op == SUB ||
@@ -296,7 +311,7 @@ struct inst parser(char* inputString) {
         parsedInstruction.rs = atoi(strtok(NULL, delimiters));
         parsedInstruction.Imm = atoi(strtok(NULL, delimiters));
         if (parsedInstruction.op == ADDI)
-            if (parsedInstruction.Imm > 65536){
+            if (parsedInstruction.Imm > 32767 || parsedInstruction.Imm < -32768){
                 printf("Integer added number greater than 16 bits - Simulator Stopped\n");
                 exit(1);
             }
@@ -312,15 +327,70 @@ struct inst parser(char* inputString) {
     return parsedInstruction;
 }
 
-int main()
+void WB() {
+
+}
+
+void MEM() {
+
+}
+
+void EX() {
+
+}
+
+void ID() {
+
+}
+
+void IF() {
+
+}
+
+int main(int argc, char *argv[])
 {
     // Initiation of variables
     FILE *instructionFile;
+    FILE *outputFile;
     char ** instructions;
+    int sim_mode;
+    int sim_counter = 0;
+    int i;
 
-    // Open instructionFile, if not there,
-    instructionFile = fopen("instructions","r");
-    assert (instructionFile != NULL);
+    // Argument input checking
+    if(argc==7){
+        if(strcmp("-s",argv[1]) == 0){
+            sim_mode=SINGLE;
+        }
+        else if(strcmp("-b",argv[1]) == 0){
+            sim_mode=BATCH;
+        }
+        else{
+            printf("Wrong sim mode chosen\n");
+            exit(0);
+        }
+        
+        multiplyTime = atoi(argv[2]);
+        executeTime = atoi(argv[3]);
+        memoryAccessTime = atoi(argv[4]);
+        instructionFile = fopen(argv[5],"r");
+        outputFile = fopen(argv[6],"w");
+        
+    }
+    
+    else{
+        printf("Usage: ./sim-mips -s m n c input_name output_name (single-sysle mode)\n or \n ./sim-mips -b m n c input_name  output_name(batch mode)\n");
+        printf("m,n,c stand for number of cycles needed by multiplication, other operation, and memory access, respectively\n");
+        exit(0);
+    }
+    if(instructionFile == NULL){
+        printf("Unable to open input or output file\n");
+        exit(0);
+    }
+    if(outputFile == NULL){
+        printf("Cannot create output file\n");
+        exit(0);
+    }
 
     // Reads through file once to check for number of lines
     int lineCount = 0;
@@ -335,8 +405,6 @@ int main()
     rewind(instructionFile);
 
     // Initiates double array in accordance to number of lineCount in the file
-    int i = 0;
-    int j = 0;
     instructions = (char **)malloc(lineCount*sizeof(char *));
     for (i = 0; i < lineCount; i++) {
         *(instructions+i) = (char *)malloc(100*sizeof(char *));
@@ -353,21 +421,62 @@ int main()
     }
 
     // Initiates Register array to be all invalid and all not being written to
-    registerArray= malloc(32*sizeof(struct Register));
-    for (i = 0; i < 32; i++) {
+    registerArray= malloc(REG_NUM*sizeof(struct Register));
+    for (i = 0; i < REG_NUM; i++) {
         registerArray[i].value = 0;
         registerArray[i].valid = 0;
         registerArray[i].isBeingWrittenTo = 0;
     }
+    registerArray[0].valid = 1;
 
     // Initiation of instruction memory in accordance to number of instructions in read file
     instructionMem = malloc(lineCount*sizeof(struct inst));
     for (i = 0; i < lineCount; i++) {
         instructions[i] = regNumberConverter(instructions[i]);
         instructionMem[i] = parser(instructions[i]);
-        printf("Instruction = %d %d %d %d %d \n", instructionMem[i].op, instructionMem[i].rs,
-                instructionMem[i].rt, instructionMem[i].rd, instructionMem[i].Imm);
+        // printf("Instruction = %d %d %d %d %d \n", instructionMem[i].op, instructionMem[i].rs,
+        //        instructionMem[i].rt, instructionMem[i].rd, instructionMem[i].Imm);
     }
+
+    // Latch and utilization counter initialization
+    for (i = 0; i < 5; i++)
+        utilization[i] = 0;
+
+    while (programCounter < lineCount * 4) {
+
+        // Waits for an enter before continuing during single mode
+        if (sim_mode == SINGLE) {
+            printf("Cycle: %d \n",sim_counter);
+
+            for (i = 1; i < REG_NUM; i++){
+                printf("%d  ", registerArray[i].value);
+            }
+
+            printf("%d\n", programCounter);
+            programCounter++; // DEBUG WILL BE CHANGED
+            sim_counter++;
+            printf("press ENTER to continue\n");
+            while(getchar() != '\n');
+        }
+    }
+
+    if(sim_mode == BATCH){
+        fprintf(outputFile, "program name: %s\n", argv[5]);
+        fprintf(outputFile, "stage utilization: %f  %f  %f  %f  %f \n",
+                            utilization[0], utilization[1], utilization[2],
+                            utilization[3], utilization[4]);
+        
+        fprintf(outputFile,"register values ");
+        for (i = 1; i < REG_NUM; i++){
+            fprintf(outputFile, "%d  ", registerArray[i].value);
+        }
+        fprintf(outputFile, "%d\n", programCounter);    // DEBUG -- THIS MAY BE CHANGED
+    
+    }
+
+    //close input and output files at the end of the simulation
+    fclose(instructionFile);
+    fclose(outputFile);
 
     return 0;
 }
