@@ -54,6 +54,29 @@ struct Register {
     int isBeingWrittenTo;
 };
 
+int RawCheck(struct inst instruction) {
+    if(instruction.op == LW || instruction.op == SW || instruction.op == ADDI  )
+    {
+        if( registerArray[instruction.rtIndex].isBeingWrittenTo == 1)
+        {
+            return 1;
+        }
+        else return 0;
+        if(instruction.op == ADD ||instruction.op == SUB ||instruction.op == MULT ||instruction.op == BEQ ||instruction.op )
+        {
+            if( registerArray[instruction.rsIndex].isBeingWrittenTo == 1 ||registerArray[instruction.rdIndex].isBeingWrittenTo == 1)
+            {
+                return 1;
+            }
+            else return 0;
+        }
+        if(instruction.op == HALT)
+        {
+            return  0;
+        }
+    }
+}
+
 void syntax(char * instruction, char * opcode) {
     int i;
     int commaCount = 0;
@@ -70,11 +93,14 @@ void syntax(char * instruction, char * opcode) {
 
     for(i = 0; i < strlen(instruction); i++)
     {
-        if(instruction[i] == ',') {
-                if(firstCommaPlace==0){
+        if(instruction[i] == ',')
+        {
+            if(firstCommaPlace==0)
+            {
                 firstCommaPlace = i;
             }
-            else if (firstCommaPlace!= 0 && secondCommaPlace == 0){
+            else if (firstCommaPlace!= 0 && secondCommaPlace == 0)
+            {
                 secondCommaPlace = i;
             }
 
@@ -86,21 +112,24 @@ void syntax(char * instruction, char * opcode) {
             paranLeftCount++;
             leftParanPlace = i;
         }
-        else if(instruction[i] == ')') {
+        else if(instruction[i] == ')')
+        {
             paranRightCount++;
-             rightParanPlace = i;
+            rightParanPlace = i;
         }
     }
 
-    if (strcmp("lw",opcode) == 0 || strcmp("sw",opcode) == 0) {
+    if (strcmp("lw",opcode) == 0 || strcmp("sw",opcode) == 0)
+    {
         assert(commaCount==1);
         assert(paranLeftCount==1);
         assert(paranRightCount==1);
         assert(rightParanPlace>leftParanPlace);
     }
-    else if (strcmp("addi",opcode) == 0 || strcmp("add",opcode) == 0 || 
-        strcmp("sub",opcode) == 0 || strcmp("mult",opcode) == 0 ||
-        strcmp("beq",opcode) == 0) {
+    else if (strcmp("addi",opcode) == 0 || strcmp("add",opcode) == 0 ||
+             strcmp("sub",opcode) == 0 || strcmp("mult",opcode) == 0 ||
+             strcmp("beq",opcode) == 0)
+    {
         assert( (secondCommaPlace - firstCommaPlace) > 2);
         assert(paranLeftCount == 0);
         assert(paranRightCount == 0);
@@ -134,7 +163,7 @@ char *progScanner(char* inputString) {
     return tempLine;
 }
 
-// Number of if and else ifs to determine whether an inputted register 
+// Number of if and else ifs to determine whether an inputted register
 char *registerToNumber(char* registerString) {
     if (strcmp("$0", registerString) == 0 || strcmp("$zero", registerString) == 0)
         return "0";
@@ -200,7 +229,8 @@ char *registerToNumber(char* registerString) {
         return "30";
     else if (strcmp("$31", registerString) == 0 || strcmp("$ra", registerString) == 0)
         return "31";
-    else {
+    else
+    {
         printf("Register %s is invalid - Simulator Stopped\n", registerString);
         exit(1);
     }
@@ -216,7 +246,8 @@ char *regNumberConverter(char* inputString) {
     // Check for the operation type
     memcpy(returnLine, strtok(inputString, delimiters), 100);
 
-    if (strcmp("sw", returnLine) == 0 || strcmp("lw", returnLine) == 0) {
+    if (strcmp("sw", returnLine) == 0 || strcmp("lw", returnLine) == 0)
+    {
         // Register
         memcpy(&returnLine[strlen(returnLine)], space, 100);
         memcpy(&returnLine[strlen(returnLine)], registerToNumber(strtok(NULL, delimiters)), 100);
@@ -238,7 +269,8 @@ char *regNumberConverter(char* inputString) {
 
         return returnLine;
     }
-    else if (strcmp("addi", returnLine) == 0 || strcmp("beq", returnLine) == 0) {
+    else if (strcmp("addi", returnLine) == 0 || strcmp("beq", returnLine) == 0)
+    {
         // Register
         memcpy(&returnLine[strlen(returnLine)], space, 100);
         memcpy(&returnLine[strlen(returnLine)], registerToNumber(strtok(NULL, delimiters)), 100);
@@ -303,41 +335,43 @@ struct inst parser(char* inputString) {
         parsedInstruction.op = LW;
     else if (strcmp(currentElement, "sw") == 0)
         parsedInstruction.op = SW;
-    else if (strcmp(currentElement, "haltSimulation") == 0) {
+    else if (strcmp(currentElement, "haltSimulation") == 0)
+    {
         parsedInstruction.op = HALT;
-        parsedInstruction.rdValue = 0;
-        parsedInstruction.rdIndex = 0;
-        parsedInstruction.rsValue = 0;
-        parsedInstruction.rsIndex = 0;
-        parsedInstruction.rtValue = 0;
-        parsedInstruction.rtIndex = 0;
+        parsedInstruction.rd = 0;
+        parsedInstruction.rs = 0;
+        parsedInstruction.rt = 0;
         parsedInstruction.Imm = 0;
     }
 
     if (parsedInstruction.op == ADD ||
-        parsedInstruction.op == SUB ||
-        parsedInstruction.op == MULT) {
-        parsedInstruction.rdIndex = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rsIndex = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rtIndex = atoi(strtok(NULL, delimiters));
+            parsedInstruction.op == SUB ||
+            parsedInstruction.op == MULT)
+    {
+        parsedInstruction.rd = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rs = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rt = atoi(strtok(NULL, delimiters));
         parsedInstruction.Imm = 0;
     }
-    else if (parsedInstruction.op == ADDI || parsedInstruction.op == BEQ) {
-        parsedInstruction.rtIndex = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rsIndex = atoi(strtok(NULL, delimiters));
+    else if (parsedInstruction.op == ADDI || parsedInstruction.op == BEQ)
+    {
+        parsedInstruction.rt = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rs = atoi(strtok(NULL, delimiters));
         parsedInstruction.Imm = atoi(strtok(NULL, delimiters));
         if (parsedInstruction.op == ADDI)
-            if (parsedInstruction.Imm > 32767 || parsedInstruction.Imm < -32768){
+            if (parsedInstruction.Imm > 32767 || parsedInstruction.Imm < -32768)
+            {
                 printf("Integer added number greater than 16 bits - Simulator Stopped\n");
                 exit(1);
             }
-        parsedInstruction.rdIndex = 0;
+        parsedInstruction.rd = 0;
     }
-    else if (parsedInstruction.op == LW || parsedInstruction.op == SW) {
-        parsedInstruction.rtIndex = atoi(strtok(NULL, delimiters));
+    else if (parsedInstruction.op == LW || parsedInstruction.op == SW)
+    {
+        parsedInstruction.rt = atoi(strtok(NULL, delimiters));
         parsedInstruction.Imm = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rsIndex = atoi(strtok(NULL, delimiters));
-        parsedInstruction.rdIndex = 0;
+        parsedInstruction.rs = atoi(strtok(NULL, delimiters));
+        parsedInstruction.rd = 0;
     }
 
     return parsedInstruction;
@@ -520,16 +554,94 @@ void EX() {
     return;
 }
 
+void IF () {
+    static int hasData = 0;
+    static int IFCD = 0;
+
+    if(IFCD == 0)
+    {
+
+        if(branchFlag == 1)
+        {
+            if(latches[0].valid == 0)
+            {
+                latches[0].heldInstruction.op = ADDI;
+                latches[0].heldInstruction.rsIndex = 0;
+                latches[0].heldInstruction.rsValue = 0;
+                latches[0].heldInstruction.rsIndex = 0;
+                latches[0].heldInstruction.rsValue = 0;
+                latches[0].heldInstruction.Imm = 0;
+                latches[0].heldInstruction.result = 0;
+
+            }
+            else return;
+
+        }
+        if(latches[0].valid==0 && hasData == 1)
+        {
+            latches[0].heldInstruction = instructionMem[programCounter];
+            programCounter++;
+            hasData = 0;
+        }
+        else if (latches[0].valid == 1 && hasData ==1)
+        {
+            return;
+        }
+        else if(hasData == 0)
+        {
+            IFCD = memoryAccessTime;
+        }
+    }
+    if (IFCD != 0)
+    {
+        IFCD --;
+
+        if(IFCD == 0)
+        {
+            hasData = 1;
+            if(latches[0].valid == 0 )
+            {
+                latches[0].heldInstruction = instructionMem[programCounter];
+                return;
+            }
+            else return;
+        }
+        return;
+    }
+}
+
 void ID() {
+    if(latches[0].valid == 1 && latches[1].valid == 0)
+    {
+        if(RawCheck(latches[0].heldInstruction) == 1)
+        {
+            return;
+        }
+        else if(latches[0].heldInstruction.op == BEQ || latches[0].heldInstruction.op == HALT)
+        {
+            branchFlag == 1;
+            latches[1].heldInstruction = latches[0].heldInstruction;
+            latches[0].valid = 0;
+        }
+        else
+        {
+            if(latches[0].heldInstruction.op == LW || latches[0].heldInstruction.op == SW || latches[0].heldInstruction.op == ADDI  )
+            {
+                registerArray[latches[0].heldInstruction.rtIndex].isBeingWrittenTo = 1;
+            }
+            if(latches[0].heldInstruction.op == ADD ||latches[0].heldInstruction.op == SUB ||latches[0].heldInstruction.op == MULT ||latches[0].heldInstruction.op == BEQ ||latches[0].heldInstruction.op )
+            {
+                registerArray[latches[0].heldInstruction.rdIndex].isBeingWrittenTo = 1;
+            }
+            latches[1].heldInstruction = latches[0].heldInstruction;
+            latches[0].valid = 0;
+        }
+    }
 
+    return;
 }
 
-void IF() {
-
-}
-
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     // Initiation of variables
     FILE *instructionFile;
     FILE *outputFile;
@@ -539,14 +651,18 @@ int main(int argc, char *argv[])
     int i;
 
     // Argument input checking
-    if(argc==7){
-        if(strcmp("-s",argv[1]) == 0){
+    if(argc==7)
+    {
+        if(strcmp("-s",argv[1]) == 0)
+        {
             sim_mode=SINGLE;
         }
-        else if(strcmp("-b",argv[1]) == 0){
+        else if(strcmp("-b",argv[1]) == 0)
+        {
             sim_mode=BATCH;
         }
-        else{
+        else
+        {
             printf("Wrong sim mode chosen\n");
             exit(0);
         }
@@ -592,7 +708,8 @@ int main(int argc, char *argv[])
 
     // Initiates double array in accordance to number of lineCount in the file
     instructions = (char **)malloc(lineCount*sizeof(char *));
-    for (i = 0; i < lineCount; i++) {
+    for (i = 0; i < lineCount; i++)
+    {
         *(instructions+i) = (char *)malloc(100*sizeof(char *));
     }
 
@@ -600,7 +717,8 @@ int main(int argc, char *argv[])
     int currentLine = 0;
     while(fgets(newLine, 100, instructionFile) != NULL)
     {
-        if (newLine != NULL) {
+        if (newLine != NULL)
+        {
             instructions[currentLine] = progScanner(newLine);
             currentLine++;
         }
@@ -608,7 +726,8 @@ int main(int argc, char *argv[])
 
     // Initiates Register array to be all invalid and all not being written to
     registerArray= malloc(REG_NUM*sizeof(struct Register));
-    for (i = 0; i < REG_NUM; i++) {
+    for (i = 0; i < REG_NUM; i++)
+    {
         registerArray[i].value = 0;
         registerArray[i].valid = 0;
         registerArray[i].isBeingWrittenTo = 0;
@@ -660,22 +779,23 @@ int main(int argc, char *argv[])
             printf("%d\n", programCounter);
             sim_counter++;
             printf("press ENTER to continue\n");
-            while(getchar() != '\n');
+            while(getchar() != '\n');\
         }
     }
 
-    if(sim_mode == BATCH){
+    if(sim_mode == BATCH) {
         fprintf(outputFile, "program name: %s\n", argv[5]);
-        fprintf(outputFile, "stage utilization: %f  %f  %f  %f  %f \n",
-                            utilization[0], utilization[1], utilization[2],
-                            utilization[3], utilization[4]);
-        
+        fprintf(outputFile, "stage utilization: %d  %d  %d  %d  %d \n",
+                utilization[0], utilization[1], utilization[2],
+                utilization[3], utilization[4]);
+
         fprintf(outputFile,"register values ");
-        for (i = 1; i < REG_NUM; i++){
+        for (i = 1; i < REG_NUM; i++)
+        {
             fprintf(outputFile, "%d  ", registerArray[i].value);
         }
         fprintf(outputFile, "%d\n", programCounter);    // DEBUG -- THIS MAY BE CHANGED
-    
+
     }
 
     //close input and output files at the end of the simulation
@@ -684,4 +804,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
