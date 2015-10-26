@@ -21,6 +21,7 @@ int multiplyTime;
 int memoryAccessTime;
 int executeTime;
 int utilization[5];
+int branchFlag = 0;
 
 enum opcode {ADD,ADDI,SUB,MULT,BEQ,LW,SW,HALT};
 
@@ -346,6 +347,27 @@ int executeOperation(struct inst instruction) {
         instruction.result = instruction.Imm + instruction.rsValue;
         return instruction.result;
     }
+    if (instruction.op == BEQ) {
+        if (instruction.rtValue == instruction.rsValue)
+            return 1;
+        else
+            return 0;
+    }
+    if (instruction.op == MULT) {
+        return instruction.rtValue * instruction.rsValue;
+    }
+    if (instruction.op == ADD) {
+        return instruction.rtValue + instruction.rsValue;
+    }
+    if (instruction.op == ADDI) {
+        return instruction.Imm + instruction.rsValue;
+    }
+    if (instruction.op == SUB) {
+        return instruction.rsValue - instruction.rtValue;
+    }
+    if (instruction.op == HALT) {
+        return 0;
+    }
 }
 
 void WB() {
@@ -366,6 +388,8 @@ void WB() {
             latches[3].valid = 0;
         }
     }
+
+    return;
 }
 
 void MEM() {
@@ -411,10 +435,68 @@ void MEM() {
             }
         }
     }
+
+    return;
 }
 
 void EX() {
+    static int exCD = 0;
+    static int hasData = 0;
 
+    // Branch instruction logic
+    if (latches[1].heldInstruction.op == BEQ) {
+        if (exCD == 0)
+            exCD = executeTime;
+
+        // Decrement counter
+        exCD--;
+
+        if (exCD == 0) {
+            if (executeOperation(latches[1].heldInstruction) == 1) {
+                programCounter += latches[1].heldInstruction.Imm;
+                latches[1].valid = 0;
+                branchFlag = 0;
+                hasData = 0;
+            }
+        }
+        return;
+    }
+
+    // Non branch instruction logic
+    if (exCD == 0) {
+        if (hasData == 1 && latches[2].valid == 0) {
+            latches[2].heldInstruction = latches[1].heldInstruction;
+            latches[2].valid = 1;
+            latches[1].valid = 0;
+            hasData = 0;
+            return;
+        }
+        else if (hasData == 0 && latches[1].valid == 1) {
+            if (latches[1].heldInstruction.op == MULT)
+                exCD = multiplyTime;
+            else if (latches[1].heldInstruction.op == HALT)
+                exCD = 1;
+            else
+                exCD = executeTime;
+        }
+    }
+
+    exCD--;
+
+    if (exCD == 0) {
+        if (latches[2].valid == 0) {
+            latches[2].heldInstruction.result = executeOperation(latches[2].heldInstruction);
+            latches[3].heldInstruction = latches[2].heldInstruction;
+            latches[2].valid = 0;
+            latches[3].valid = 1;
+        }
+        else {
+            hasData = 1;
+            latches[2].heldInstruction.result = executeOperation(latches[2].heldInstruction);
+        }
+    }
+
+    return;
 }
 
 void ID() {
@@ -451,6 +533,11 @@ int main(int argc, char *argv[])
         multiplyTime = atoi(argv[2]);
         executeTime = atoi(argv[3]);
         memoryAccessTime = atoi(argv[4]);
+
+        assert (multiplyTime > 0);
+        assert (executeTime > 0);
+        assert (memoryAccessTime > 0);
+
         instructionFile = fopen(argv[5],"r");
         outputFile = fopen(argv[6],"w");
         
