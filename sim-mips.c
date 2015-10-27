@@ -3,7 +3,7 @@
 
 /* TODO:
     - UTILIZATION COUNTERS
-    - OUT OF BOUND CHECK FOR INSTRUCTION MEMORY
+    - MEMORY ACCESS CHANGE
 */
 
 #include <stdio.h>
@@ -68,25 +68,27 @@ struct Register {
 // }
 
 int RawCheck(struct inst instruction) {
-    if(instruction.op == LW || instruction.op == SW || instruction.op == ADDI  )
+    if(instruction.op == SW || instruction.op == ADDI  )
     {
-        if( registerArray[instruction.rtIndex].isBeingWrittenTo == 1)
+        if( registerArray[instruction.rsIndex].isBeingWrittenTo == 1)
+        {
+            return 1;
+        }
+
+        else return 0;
+    }
+    if(instruction.op == ADD ||instruction.op == SUB ||instruction.op == MULT ||
+        instruction.op == BEQ || instruction.op == LW)
+    {
+        if( registerArray[instruction.rsIndex].isBeingWrittenTo == 1 ||registerArray[instruction.rtIndex].isBeingWrittenTo == 1)
         {
             return 1;
         }
         else return 0;
-        if(instruction.op == ADD ||instruction.op == SUB ||instruction.op == MULT ||instruction.op == BEQ ||instruction.op )
-        {
-            if( registerArray[instruction.rsIndex].isBeingWrittenTo == 1 ||registerArray[instruction.rdIndex].isBeingWrittenTo == 1)
-            {
-                return 1;
-            }
-            else return 0;
-        }
-        if(instruction.op == HALT)
-        {
-            return  0;
-        }
+    }
+    if(instruction.op == HALT)
+    {
+        return  0;
     }
 }
 
@@ -636,7 +638,7 @@ void IF () {
     {
         if(branchFlag == 1)
         {
-            if(latches[0].valid == 0)
+            if(latches[0].valid == 0) //insert nop in branch case
             {
                 latches[0].heldInstruction.op = ADDI;
                 latches[0].heldInstruction.rsIndex = 0;
@@ -646,6 +648,7 @@ void IF () {
                 latches[0].heldInstruction.Imm = 0;
                 latches[0].heldInstruction.result = 0;
                 latches[0].valid = 1;
+                hasData = 0;
             }
             else return;
 
@@ -655,8 +658,8 @@ void IF () {
             if (programCounter < lineCount && programCounter >= -1) {
                 latches[0].heldInstruction = instructionMem[programCounter];
                 latches[0].valid = 1;
-                programCounter++;
                 hasData = 0;
+                programCounter++;
             }
             else {
                 latches[0].heldInstruction.op = ADDI;
@@ -688,6 +691,9 @@ void IF () {
             if(latches[0].valid == 0 )
             {
                 latches[0].heldInstruction = instructionMem[programCounter];
+                latches[0].valid = 1;
+                hasData = 0;
+                programCounter++;
                 return;
             }
             else return;
@@ -795,8 +801,6 @@ int main(int argc, char *argv[]) {
     for (i = 0; i < lineCount; i++) {
         instructions[i] = regNumberConverter(instructions[i]);
         instructionMem[i] = parser(instructions[i]);
-
-        printf("Instruction opcode = %d \n", instructionMem[i].op);
     }
 
     // Latch and utilization counter initialization
