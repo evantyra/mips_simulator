@@ -21,13 +21,14 @@ int programCounter;
 struct Register *registerArray;
 struct inst *instructionMem;
 struct Latch *latches; // [0] = IF-ID, [1] = ID-EX, [2] = EX-MEM, [3] = MEM-WB
-int memoryArray[32];
+int *memoryArray;
 int multiplyTime;
 int memoryAccessTime;
 int executeTime;
 int utilization[5];
 int branchFlag = 0;
 int haltFlag = 0;
+int lineCount;
 
 enum opcode {ADD,ADDI,SUB,MULT,BEQ,LW,SW,HALT};
 
@@ -53,6 +54,18 @@ struct Register {
     int valid;
     int isBeingWrittenTo;
 };
+
+// void copyInstruction(struct inst destination, struct inst source) {
+//     destination.op = source.op;
+//     destination.rsIndex = source.rsIndex;
+//     destination.rsValue = source.rsValue;
+//     destination.rtIndex = source.rtIndex;
+//     destination.rtValue = source.rtValue;
+//     destination.rdIndex = source.rdIndex;
+//     destination.rdValue = source.rdValue;
+//     destination.Imm = source.Imm;
+//     destination.result = source.result;
+// }
 
 int RawCheck(struct inst instruction) {
     if(instruction.op == LW || instruction.op == SW || instruction.op == ADDI  )
@@ -500,8 +513,15 @@ void EX() {
         // If true, increase program counter, in either case the ID-EX mem latch
         // is invalidated and the branch flag is set to false
         if (exCD == 0) {
-            if (executeOperation(latches[1].heldInstruction) == 1)
+            if (executeOperation(latches[1].heldInstruction) == 1) {
                 programCounter += latches[1].heldInstruction.Imm;
+
+                if (programCounter < 0 || programCounter >= lineCount) {
+                    printf("Branched out of Instruction Memory - Simulation Stopped\n");
+                    haltFlag = 1;
+                    return;
+                }
+            }
             latches[1].valid = 0;
             branchFlag = 0;
             hasData = 0;
@@ -529,7 +549,9 @@ void EX() {
                 exCD = 1;
             else
                 exCD = executeTime;
-        }
+        }   
+        else
+            return;
     }
 
     exCD--;
@@ -540,14 +562,15 @@ void EX() {
     // that there is data being held in this latch and is ready to be pushed when ready
     if (exCD == 0) {
         if (latches[2].valid == 0) {
-            latches[2].heldInstruction.result = executeOperation(latches[2].heldInstruction);
-            latches[3].heldInstruction = latches[2].heldInstruction;
-            latches[2].valid = 0;
-            latches[3].valid = 1;
+            latches[1].heldInstruction.result = executeOperation(latches[1].heldInstruction);
+            latches[2].heldInstruction = latches[1].heldInstruction;
+            latches[1].valid = 0;
+            latches[2].valid = 1;
+            hasData = 0;
         }
         else {
             hasData = 1;
-            latches[2].heldInstruction.result = executeOperation(latches[2].heldInstruction);
+            latches[1].heldInstruction.result = executeOperation(latches[1].heldInstruction);
         }
     }
 
@@ -565,6 +588,7 @@ void ID() {
         {
             branchFlag == 1;
             latches[1].heldInstruction = latches[0].heldInstruction;
+            latches[1].valid = 1;
             latches[0].valid = 0;
         }
         else
@@ -578,6 +602,7 @@ void ID() {
                 registerArray[latches[0].heldInstruction.rdIndex].isBeingWrittenTo = 1;
             }
             latches[1].heldInstruction = latches[0].heldInstruction;
+            latches[1].valid = 1;
             latches[0].valid = 0;
         }
     }
@@ -591,7 +616,6 @@ void IF () {
 
     if(IFCD == 0)
     {
-
         if(branchFlag == 1)
         {
             if(latches[0].valid == 0)
@@ -603,16 +627,29 @@ void IF () {
                 latches[0].heldInstruction.rsValue = 0;
                 latches[0].heldInstruction.Imm = 0;
                 latches[0].heldInstruction.result = 0;
-
+                latches[0].valid = 1;
             }
             else return;
 
         }
-        if(latches[0].valid==0 && hasData == 1)
+        if(latches[0].valid == 0 && hasData == 1)
         {
-            latches[0].heldInstruction = instructionMem[programCounter];
-            programCounter++;
-            hasData = 0;
+            if (programCounter < lineCount - 1 && programCounter >= -1) {
+                latches[0].heldInstruction = instructionMem[programCounter];
+                latches[0].valid = 1;
+                programCounter++;
+                hasData = 0;
+            }
+            else {
+                latches[0].heldInstruction.op = ADDI;
+                latches[0].heldInstruction.rsIndex = 0;
+                latches[0].heldInstruction.rsValue = 0;
+                latches[0].heldInstruction.rsIndex = 0;
+                latches[0].heldInstruction.rsValue = 0;
+                latches[0].heldInstruction.Imm = 0;
+                latches[0].heldInstruction.result = 0;
+                latches[0].valid = 1;
+            }
         }
         else if (latches[0].valid == 1 && hasData ==1)
         {
@@ -695,7 +732,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Reads through file once to check for number of lines
-    int lineCount = 0;
+    lineCount = 0;
     char *newLine;
     newLine = (char *)malloc(100*sizeof(char *));
     while(!feof(instructionFile))
@@ -703,7 +740,6 @@ int main(int argc, char *argv[]) {
         fgets(newLine, 100, instructionFile);
         lineCount++;
     }
-    lineCount = lineCount;
     rewind(instructionFile);
 
     // Initiates double array in accordance to number of lineCount in the file
@@ -725,7 +761,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Initiates Register array to be all invalid and all not being written to
-    registerArray= malloc(REG_NUM*sizeof(struct Register));
+    registerArray = malloc(REG_NUM*sizeof(struct Register));
+    memoryArray = malloc(REG_NUM*sizeof(int));
     for (i = 0; i < REG_NUM; i++)
     {
         registerArray[i].value = 0;
@@ -746,12 +783,13 @@ int main(int argc, char *argv[]) {
 
     // Latch and utilization counter initialization
     latches = malloc(4*sizeof(struct Latch));
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < 4; i++) {
         latches[i].valid = 0;
+    }
     for (i = 0; i < 5; i++)
         utilization[i] = 0;
 
-    while (programCounter < lineCount * 4) {
+    while (haltFlag == 0) {
         WB();
         if (haltFlag == 1)
             break;
@@ -776,6 +814,14 @@ int main(int argc, char *argv[]) {
                 printf("%d  ", registerArray[i].value);
             }
 
+            printf("Latches : \n");
+
+            for (i = 0; i < 4; i++) {
+                printf("%d %d %d %d %d\n", latches[i].heldInstruction.op, latches[i].heldInstruction.rsIndex,
+                        latches[i].heldInstruction.rtIndex, latches[i].heldInstruction.rdIndex,
+                        latches[i].valid);
+            }
+
             printf("%d\n", programCounter);
             sim_counter++;
             printf("press ENTER to continue\n");
@@ -794,7 +840,7 @@ int main(int argc, char *argv[]) {
         {
             fprintf(outputFile, "%d  ", registerArray[i].value);
         }
-        fprintf(outputFile, "%d\n", programCounter);    // DEBUG -- THIS MAY BE CHANGED
+        fprintf(outputFile, "\nProgram Counter = %d\n", programCounter);    // DEBUG -- THIS MAY BE CHANGED
 
     }
 

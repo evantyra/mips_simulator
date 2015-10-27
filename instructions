@@ -1,4 +1,5 @@
 sw $ra, 8($t0)  
 add $t3, $t2, $t1
-beq $t5,$s0,-8
-sw $s7, 12($t0)
+addi $t5,$s0,-8
+sw $s7,12($t0)
+haltSimulation
