@@ -564,7 +564,8 @@ void EX() {
         if (latches[2].valid == 0) {
             latches[1].heldInstruction.result = executeOperation(latches[1].heldInstruction);
             latches[2].heldInstruction = latches[1].heldInstruction;
-            latches[1].valid = 0;
+            if (latches[2].heldInstruction.op != HALT)  // Used to stop the program
+                latches[1].valid = 0;
             latches[2].valid = 1;
             hasData = 0;
         }
@@ -589,7 +590,8 @@ void ID() {
             branchFlag == 1;
             latches[1].heldInstruction = latches[0].heldInstruction;
             latches[1].valid = 1;
-            latches[0].valid = 0;
+            if (latches[1].heldInstruction.op != HALT)
+                latches[0].valid = 0;
         }
         else
         {
@@ -650,7 +652,7 @@ void IF () {
         }
         if(latches[0].valid == 0 && hasData == 1)
         {
-            if (programCounter < lineCount - 1 && programCounter >= -1) {
+            if (programCounter < lineCount && programCounter >= -1) {
                 latches[0].heldInstruction = instructionMem[programCounter];
                 latches[0].valid = 1;
                 programCounter++;
@@ -667,7 +669,7 @@ void IF () {
                 latches[0].valid = 1;
             }
         }
-        else if (latches[0].valid == 1 && hasData ==1)
+        else if (latches[0].valid == 1 && hasData == 1)
         {
             return;
         }
@@ -793,8 +795,8 @@ int main(int argc, char *argv[]) {
     for (i = 0; i < lineCount; i++) {
         instructions[i] = regNumberConverter(instructions[i]);
         instructionMem[i] = parser(instructions[i]);
-        // printf("Instruction = %d %d %d %d %d \n", instructionMem[i].op, instructionMem[i].rs,
-        //        instructionMem[i].rt, instructionMem[i].rd, instructionMem[i].Imm);
+
+        printf("Instruction opcode = %d \n", instructionMem[i].op);
     }
 
     // Latch and utilization counter initialization
