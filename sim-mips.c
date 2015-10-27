@@ -593,13 +593,29 @@ void ID() {
         }
         else
         {
-            if(latches[0].heldInstruction.op == LW || latches[0].heldInstruction.op == SW || latches[0].heldInstruction.op == ADDI  )
+            if (latches[0].heldInstruction.op == SW)
             {
+                latches[0].heldInstruction.rtValue = registerArray[latches[0].heldInstruction.rtIndex].value;
+                latches[0].heldInstruction.rsValue = registerArray[latches[0].heldInstruction.rsIndex].value;
+            }
+            if (latches[0].heldInstruction.op == ADD || latches[0].heldInstruction.op == SUB ||
+               latches[0].heldInstruction.op == MULT)
+            {
+                latches[0].heldInstruction.rsValue = registerArray[latches[0].heldInstruction.rsIndex].value;
+                latches[0].heldInstruction.rtValue = registerArray[latches[0].heldInstruction.rtIndex].value;
+                registerArray[latches[0].heldInstruction.rdIndex].isBeingWrittenTo = 1;
+            }
+            if (latches[0].heldInstruction.op == BEQ) {
+                latches[0].heldInstruction.rsValue = registerArray[latches[0].heldInstruction.rsIndex].value;
+                latches[0].heldInstruction.rtValue = registerArray[latches[0].heldInstruction.rtIndex].value;
+            }
+            if (latches[0].heldInstruction.op == ADDI) {
+                latches[0].heldInstruction.rsValue = registerArray[latches[0].heldInstruction.rsIndex].value;
                 registerArray[latches[0].heldInstruction.rtIndex].isBeingWrittenTo = 1;
             }
-            if(latches[0].heldInstruction.op == ADD ||latches[0].heldInstruction.op == SUB ||latches[0].heldInstruction.op == MULT ||latches[0].heldInstruction.op == BEQ ||latches[0].heldInstruction.op )
-            {
-                registerArray[latches[0].heldInstruction.rdIndex].isBeingWrittenTo = 1;
+            if (latches[0].heldInstruction.op == LW) {
+                latches[0].heldInstruction.rsValue = registerArray[latches[0].heldInstruction.rsIndex].value;
+                registerArray[latches[0].heldInstruction.rtIndex].isBeingWrittenTo = 1;
             }
             latches[1].heldInstruction = latches[0].heldInstruction;
             latches[1].valid = 1;
