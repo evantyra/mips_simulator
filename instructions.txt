@@ -1,0 +1,6 @@
+addi $t2, $zero, 10
+addi $t3, $zero, 4
+addi $t2, $t2, 5
+addi $t4, $zero, 15
+beq $t4, $t2, -4
+haltSimulation

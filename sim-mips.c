@@ -403,6 +403,7 @@ int executeOperation(struct inst instruction) {
         return instruction.result;
     }
     if (instruction.op == BEQ) {
+        printf("%d %d\n",instruction.rtValue, instruction.rsValue);
         if (instruction.rtValue == instruction.rsValue)
             return 1;
         else
@@ -521,6 +522,7 @@ void EX() {
         if (exCD == 0) {
             if (executeOperation(latches[1].heldInstruction) == 1) {
                 programCounter += latches[1].heldInstruction.Imm;
+                printf("Branched to %d\n", programCounter);
 
                 if (programCounter < 0 || programCounter >= lineCount) {
                     printf("Branched out of Instruction Memory - Simulation Stopped\n");
@@ -585,6 +587,9 @@ void EX() {
 }
 
 void ID() {
+    if (latches[0].heldInstruction.op == BEQ || latches[0].heldInstruction.op == HALT)
+        branchFlag = 1;
+
     if(latches[0].valid == 1 && latches[1].valid == 0)
     {
         if(RawCheck(latches[0].heldInstruction) == 1)
@@ -593,7 +598,10 @@ void ID() {
         }
         else if(latches[0].heldInstruction.op == BEQ || latches[0].heldInstruction.op == HALT)
         {
-            branchFlag == 1;
+            if (latches[0].heldInstruction.op == BEQ) {
+                latches[0].heldInstruction.rsValue = registerArray[latches[0].heldInstruction.rsIndex].value;
+                latches[0].heldInstruction.rtValue = registerArray[latches[0].heldInstruction.rtIndex].value;
+            }
             latches[1].heldInstruction = latches[0].heldInstruction;
             latches[1].valid = 1;
             if (latches[1].heldInstruction.op != HALT)
@@ -612,10 +620,6 @@ void ID() {
                 latches[0].heldInstruction.rsValue = registerArray[latches[0].heldInstruction.rsIndex].value;
                 latches[0].heldInstruction.rtValue = registerArray[latches[0].heldInstruction.rtIndex].value;
                 registerArray[latches[0].heldInstruction.rdIndex].isBeingWrittenTo = 1;
-            }
-            if (latches[0].heldInstruction.op == BEQ) {
-                latches[0].heldInstruction.rsValue = registerArray[latches[0].heldInstruction.rsIndex].value;
-                latches[0].heldInstruction.rtValue = registerArray[latches[0].heldInstruction.rtIndex].value;
             }
             if (latches[0].heldInstruction.op == ADDI) {
                 latches[0].heldInstruction.rsValue = registerArray[latches[0].heldInstruction.rsIndex].value;
@@ -644,17 +648,20 @@ void IF () {
         {
             if(latches[0].valid == 0) //insert nop in branch case
             {
+                printf("Inserting No-op\n");
                 latches[0].heldInstruction.op = ADDI;
                 latches[0].heldInstruction.rsIndex = 0;
                 latches[0].heldInstruction.rsValue = 0;
-                latches[0].heldInstruction.rsIndex = 0;
-                latches[0].heldInstruction.rsValue = 0;
+                latches[0].heldInstruction.rtIndex = 0;
+                latches[0].heldInstruction.rtValue = 0;
+                latches[0].heldInstruction.rdValue = 0;
+                latches[0].heldInstruction.rdValue = 0;
                 latches[0].heldInstruction.Imm = 0;
                 latches[0].heldInstruction.result = 0;
                 latches[0].valid = 1;
                 hasData = 0;
             }
-            else return;
+            return;
 
         }
         if(latches[0].valid == 0 && hasData == 1)
@@ -836,11 +843,12 @@ int main(int argc, char *argv[]) {
         if (sim_mode == SINGLE) {
             printf("Cycle: %d \n",sim_counter);
 
+            printf("Registers :\n");
             for (i = 1; i < REG_NUM; i++){
                 printf("%d  ", registerArray[i].value);
             }
 
-            printf("Latches : \n");
+            printf("\nLatches : \n");
 
             for (i = 0; i < 4; i++) {
                 printf("%d %d %d %d %d\n", latches[i].heldInstruction.op, latches[i].heldInstruction.rsIndex,
@@ -848,7 +856,7 @@ int main(int argc, char *argv[]) {
                         latches[i].valid);
             }
 
-            printf("%d\n", programCounter);
+            printf("Program Counter: %d\n", programCounter);
             sim_counter++;
             printf("press ENTER to continue\n");
             while(getchar() != '\n');\
