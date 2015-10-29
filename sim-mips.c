@@ -55,18 +55,6 @@ struct Register {
     int isBeingWrittenTo;
 };
 
-// void copyInstruction(struct inst destination, struct inst source) {
-//     destination.op = source.op;
-//     destination.rsIndex = source.rsIndex;
-//     destination.rsValue = source.rsValue;
-//     destination.rtIndex = source.rtIndex;
-//     destination.rtValue = source.rtValue;
-//     destination.rdIndex = source.rdIndex;
-//     destination.rdValue = source.rdValue;
-//     destination.Imm = source.Imm;
-//     destination.result = source.result;
-// }
-
 int RawCheck(struct inst instruction) {
     if(instruction.op == SW || instruction.op == ADDI  )
     {
@@ -427,7 +415,10 @@ int executeOperation(struct inst instruction) {
 }
 
 int checkMemInRange(int address) {
-
+    if (address % 4 == 0 && address / 4 >= 0 && address / 4 < 32)
+        return 1;
+    else
+        return 0;
 }
 
 void WB() {
@@ -474,23 +465,23 @@ void MEM() {
         if (memCD == 0) {
             // Executes load word or SW, checks for out of bounds of memory error
             if (latches[2].heldInstruction.op == LW) {
-                if (latches[2].heldInstruction.result >= 32 || latches[2].heldInstruction.result < 0) {
+                if (checkMemInRange(latches[2].heldInstruction.result) == 0) {
                     printf("Memory access: %d is invalid - Simulation Stopped\n",
                             latches[2].heldInstruction.result);
                     haltFlag = 1;   // Used to stop program but allow writeout
                 }
-                latches[2].heldInstruction.result = memoryArray[latches[2].heldInstruction.result];
+                latches[2].heldInstruction.result = memoryArray[latches[2].heldInstruction.result / 4];
                 latches[3].heldInstruction = latches[2].heldInstruction;
                 latches[3].valid = 1;
                 latches[2].valid = 0;
             }
             else if (latches[2].heldInstruction.op == SW) {
-                if (latches[2].heldInstruction.result >= 32 || latches[2].heldInstruction.result < 0) {
+                if (checkMemInRange(latches[2].heldInstruction.result) == 0) {
                     printf("Memory access: %d is invalid - Simulation Stopped\n",
                         latches[2].heldInstruction.result);
                     haltFlag = 1;   // Used to stop program but allow writeout
                 }
-                memoryArray[latches[2].heldInstruction.result] = latches[2].heldInstruction.rtValue;
+                memoryArray[latches[2].heldInstruction.result / 4] = latches[2].heldInstruction.rtValue;
                 latches[2].valid = 0;
             }
             else {  // A simple latch transfer is needed if not SW or LW
@@ -592,6 +583,9 @@ void ID() {
 
     if(latches[0].valid == 1 && latches[1].valid == 0)
     {
+        // Make sure $zero value is never changed, even if it was written to with an int
+        registerArray[0].value = 0;
+
         if(RawCheck(latches[0].heldInstruction) == 1)
         {
             return;
@@ -632,6 +626,9 @@ void ID() {
             latches[1].heldInstruction = latches[0].heldInstruction;
             latches[1].valid = 1;
             latches[0].valid = 0;
+
+            // Automatically reset $zero to never being written to as its value can't change
+            registerArray[0].isBeingWrittenTo = 0;
         }
     }
 
