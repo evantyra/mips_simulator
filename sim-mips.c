@@ -272,7 +272,7 @@ char *regNumberConverter(char* inputString) {
         for (i = 0; i < strlen(number); i++)
             if (!isdigit(number[i]))
             {
-                printf ("Expected element to be number, is not - Simulator Stopped\n");
+                printf ("Expected : %s element to be number, is not - Simulator Stopped\n", number);
                 exit(1);
             }
         memcpy(&returnLine[strlen(returnLine)], space, 100);
@@ -301,7 +301,7 @@ char *regNumberConverter(char* inputString) {
             {
                 if (i == 0 && number[i] == '-')
                     continue;
-                printf ("Expected element to be number, is not - Simulator Stopped\n");
+                printf ("Expected : %s element to be number, is not - Simulator Stopped\n", number);
                 exit(1);
             }
         memcpy(&returnLine[strlen(returnLine)], space, 100);
@@ -423,6 +423,10 @@ int executeOperation(struct inst instruction) {
     if (instruction.op == HALT) {
         return 0;
     }
+}
+
+int checkMemInRange(int address) {
+
 }
 
 void WB() {
