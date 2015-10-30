@@ -1,6 +1,13 @@
-addi $t2, $zero, 10
-addi $t3, $zero, 4
-addi $t2, $t2, 5
-addi $t4, $zero, 15
-beq $t4, $t2, -4
+addi $t1, $zero, 4
+addi $t2,$zero, 5
+addi $t3,$zero,6
+addi $t4,$zero,7
+add $s0, $t3, $t2
+add $s1, $t1, $t4
+beq $s1, $s0, -10
+add $s2,$t1,$t2
+add $s3,$t1,$t2
+add $s4,$t1,$t2
+add $s5,$t1,$t2
+add $s6,$t1,$t2
 haltSimulation

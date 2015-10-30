@@ -3,7 +3,6 @@
 
 /* TODO:
     - UTILIZATION COUNTERS
-    - MEMORY ACCESS CHANGE
 */
 
 #include <stdio.h>
@@ -152,10 +151,13 @@ char *progScanner(char* inputString) {
 
     // Concatanates each part of the string after we check that it is in the correct format
     memcpy(tempLine, strtok(inputString, delimiters), 100);
+
+    // Runs through a syntax checker if not haltSimulation, returns line as is if is halts
     if (strcmp("haltSimulation", tempLine) != 0)
         syntax(copyInputString, tempLine);
     else
         return tempLine;
+
     memcpy(&tempLine[strlen(tempLine)], space, 100);
     memcpy(&tempLine[strlen(tempLine)], strtok(NULL, delimiters), 100);
     memcpy(&tempLine[strlen(tempLine)], space, 100);
@@ -391,7 +393,6 @@ int executeOperation(struct inst instruction) {
         return instruction.result;
     }
     if (instruction.op == BEQ) {
-        printf("%d %d\n",instruction.rtValue, instruction.rsValue);
         if (instruction.rtValue == instruction.rsValue)
             return 1;
         else
@@ -513,7 +514,6 @@ void EX() {
         if (exCD == 0) {
             if (executeOperation(latches[1].heldInstruction) == 1) {
                 programCounter += latches[1].heldInstruction.Imm;
-                printf("Branched to %d\n", programCounter);
 
                 if (programCounter < 0 || programCounter >= lineCount) {
                     printf("Branched out of Instruction Memory - Simulation Stopped\n");
@@ -645,7 +645,6 @@ void IF () {
         {
             if(latches[0].valid == 0) //insert nop in branch case
             {
-                printf("Inserting No-op\n");
                 latches[0].heldInstruction.op = ADDI;
                 latches[0].heldInstruction.rsIndex = 0;
                 latches[0].heldInstruction.rsValue = 0;
