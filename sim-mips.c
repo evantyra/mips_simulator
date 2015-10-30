@@ -200,13 +200,13 @@ char *registerToNumber(char* registerString) {
         return "13";
     else if (strcmp("$14", registerString) == 0 || strcmp("$t6", registerString) == 0)
         return "14";
-    else if (strcmp("$14", registerString) == 0 || strcmp("$t7", registerString) == 0)
-        return "14";
-    else if (strcmp("$15", registerString) == 0 || strcmp("$s0", registerString) == 0)
+    else if (strcmp("$15", registerString) == 0 || strcmp("$t7", registerString) == 0)
         return "15";
-    else if (strcmp("$16", registerString) == 0 || strcmp("$s1", registerString) == 0)
+    else if (strcmp("$16", registerString) == 0 || strcmp("$s0", registerString) == 0)
         return "16";
-    else if (strcmp("$17", registerString) == 0 || strcmp("$s2", registerString) == 0)
+    else if (strcmp("$17", registerString) == 0 || strcmp("$s1", registerString) == 0)
+        return "17";
+    else if (strcmp("$18", registerString) == 0 || strcmp("$s2", registerString) == 0)
         return "18";
     else if (strcmp("$19", registerString) == 0 || strcmp("$s3", registerString) == 0)
         return "19";
