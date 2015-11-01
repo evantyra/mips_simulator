@@ -2,6 +2,8 @@
 // Tested by Evan Tyra
 
 /* TODO:
+    - Single - Print registers, programCounter (needs to increase by 4 when reading)
+    - Batch - Registers, Total Program Cycles, Utilizations, Program Counter
     - UTILIZATION COUNTERS
 */
 
@@ -433,18 +435,18 @@ void WB() {
             haltFlag = 1;   // Ends program with writeout if halt directive read
         }
         else if (latches[3].heldInstruction.op == LW || latches[3].heldInstruction.op == ADDI) {
-			if(!(latches[3].heldInstruction.rtIndex == 0 && latches[3].heldInstruction.op == ADDI) ){
-		utilization[4] = utilization[4]+1;
-		}
+            // Only increments utilization if not a no-op
+    		if(latches[3].heldInstruction.rtIndex != 0 && 
+                (latches[3].heldInstruction.op == LW || latches[3].heldInstruction.op == ADDI))
+                utilization[4] = utilization[4]++;
             registerArray[latches[3].heldInstruction.rtIndex].value = latches[3].heldInstruction.result;
             registerArray[latches[3].heldInstruction.rtIndex].isBeingWrittenTo = 0;
             latches[3].valid = 0;
         }
         else if (latches[3].heldInstruction.op == ADD || latches[3].heldInstruction.op == SUB ||
                  latches[3].heldInstruction.op == MULT) {
-					 if(!(latches[3].heldInstruction.rtIndex == 0 && latches[3].heldInstruction.op == ADDI) ){
-		utilization[4] = utilization[4]+1;
-		}
+            if (latches[3].heldInstruction.rdIndex != 0)
+                utilization[4] = utilization[4]++;
             registerArray[latches[3].heldInstruction.rdIndex].value = latches[3].heldInstruction.result;
             registerArray[latches[3].heldInstruction.rdIndex].isBeingWrittenTo = 0;
             latches[3].valid = 0;
@@ -472,30 +474,31 @@ void MEM() {
     // Decrements memCD if > 0, and if memCD is then equal to 0, execute the instruction accordingly
     if (memCD != 0) {
         memCD--;
-		if(latches[2].heldInstruction.op == LW ||latches[2].heldInstruction.op == SW){
-		utilization[3] = utilization[3]+1;
-		}
+
+        // Utilization Incrementer
+		if(latches[2].heldInstruction.op == LW && latches[2].heldInstruction.op == SW)
+            utilization[3] = utilization[3]++;
 		
         if (memCD == 0) {
             // Executes load word or SW, checks for out of bounds of memory error
             if (latches[2].heldInstruction.op == LW) {
-                if (checkMemInRange(latches[2].heldInstruction.result) == 0) {
+                if (checkMemInRange(latches[2].heldInstruction.result - 2048) == 0) {
                     printf("Memory access: %d is invalid - Simulation Stopped\n",
                             latches[2].heldInstruction.result);
                     haltFlag = 1;   // Used to stop program but allow writeout
                 }
-                latches[2].heldInstruction.result = memoryArray[latches[2].heldInstruction.result / 4];
+                latches[2].heldInstruction.result = memoryArray[latches[2].heldInstruction.result / 4 - 2048];
                 latches[3].heldInstruction = latches[2].heldInstruction;
                 latches[3].valid = 1;
                 latches[2].valid = 0;
             }
             else if (latches[2].heldInstruction.op == SW) {
-                if (checkMemInRange(latches[2].heldInstruction.result) == 0) {
+                if (checkMemInRange(latches[2].heldInstruction.result - 2048) == 0) {
                     printf("Memory access: %d is invalid - Simulation Stopped\n",
                         latches[2].heldInstruction.result);
                     haltFlag = 1;   // Used to stop program but allow writeout
                 }
-                memoryArray[latches[2].heldInstruction.result / 4] = latches[2].heldInstruction.rtValue;
+                memoryArray[latches[2].heldInstruction.result / 4- 2048] = latches[2].heldInstruction.rtValue;
                 latches[2].valid = 0;
             }
             else {  // A simple latch transfer is needed if not SW or LW
@@ -520,18 +523,17 @@ void EX() {
 
         // Decrement counter
         exCD--;
-		if(!(latches[1].heldInstruction.rtIndex == 0 && latches[1].heldInstruction.op == ADDI) ){
-		utilization[2] = utilization[2]+1;
-		}
+
+        utilization[2] = utilization[2]++;
 
         // If number of cycles needed has passed, check for equal register values,
         // If true, increase program counter, in either case the ID-EX mem latch
         // is invalidated and the branch flag is set to false
         if (exCD == 0) {
             if (executeOperation(latches[1].heldInstruction) == 1) {
-                programCounter += latches[1].heldInstruction.Imm;
+                programCounter += latches[1].heldInstruction.Imm * 4;
 
-                if (programCounter < 0 || programCounter >= lineCount) {
+                if (programCounter < 0 || programCounter >= lineCount * 4) {
                     printf("Branched out of Instruction Memory - Simulation Stopped\n");
                     haltFlag = 1;
                     return;
@@ -549,7 +551,7 @@ void EX() {
         // If data is held since it wasn't able to move forward due to a mem backup
         // Push the instruction into the next latch and validate/invalidate accordingly
         if (hasData == 1 && latches[2].valid == 0) {
-			utilization[2] = utilization[2] + 1;
+			utilization[2] = utilization[2]++;
             latches[2].heldInstruction = latches[1].heldInstruction;
             latches[2].valid = 1;
             latches[1].valid = 0;
@@ -604,13 +606,14 @@ void ID() {
     {
         // Make sure $zero value is never changed, even if it was written to with an int
         registerArray[0].value = 0;
-		utilization[1] = utilization[1]+1;
+
         if(RawCheck(latches[0].heldInstruction) == 1)
         {
             return;
         }
         else if(latches[0].heldInstruction.op == BEQ || latches[0].heldInstruction.op == HALT)
         {
+            utilization[1] = utilization[1]++;
             if (latches[0].heldInstruction.op == BEQ) {
                 latches[0].heldInstruction.rsValue = registerArray[latches[0].heldInstruction.rsIndex].value;
                 latches[0].heldInstruction.rtValue = registerArray[latches[0].heldInstruction.rtIndex].value;
@@ -645,6 +648,9 @@ void ID() {
             latches[1].heldInstruction = latches[0].heldInstruction;
             latches[1].valid = 1;
             latches[0].valid = 0;
+
+            if (!(latches[1].heldInstruction.op == ADDI && latches[1].heldInstruction.rtIndex == 0))
+                utilization[1] = utilization[1]++;
 
             // Automatically reset $zero to never being written to as its value can't change
             registerArray[0].isBeingWrittenTo = 0;
@@ -681,12 +687,12 @@ void IF () {
         }
         if(latches[0].valid == 0 && hasData == 1)
         {
-            if (programCounter < lineCount && programCounter >= -1) {
+            if (programCounter < lineCount * 4 && programCounter >= -4) {
                 latches[0].heldInstruction = instructionMem[programCounter];
                 latches[0].valid = 1;
                 hasData = 0;
-                programCounter++;
-				utilization[0] = utilization[0] + 1;
+                programCounter += 4;
+				utilization[0] = utilization[0]++;
             }
             else {
                 latches[0].heldInstruction.op = ADDI;
@@ -737,10 +743,10 @@ void IF () {
             hasData = 1;
             if(latches[0].valid == 0 )
             {
-                latches[0].heldInstruction = instructionMem[programCounter];
+                latches[0].heldInstruction = instructionMem[programCounter / 4];
                 latches[0].valid = 1;
                 hasData = 0;
-                programCounter++;
+                programCounter += 4;
                 return;
             }
             else return;
@@ -833,15 +839,17 @@ int main(int argc, char *argv[]) {
 
     // Initiates Register array to be all invalid and all not being written to
     registerArray = malloc(REG_NUM*sizeof(struct Register));
-    memoryArray = malloc(512*sizeof(int));
     for (i = 0; i < REG_NUM; i++)
     {
         registerArray[i].value = 0;
         registerArray[i].valid = 0;
         registerArray[i].isBeingWrittenTo = 0;
-        memoryArray[i] = 0;
     }
     registerArray[0].valid = 1;
+
+    memoryArray = malloc(512*sizeof(int));
+    for (i = 0; i < 512; i++)
+        memoryArray[i] = 0;
 
     // Initiation of instruction memory in accordance to number of instructions in read file
     instructionMem = malloc(lineCount*sizeof(struct inst));
