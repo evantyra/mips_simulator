@@ -18,7 +18,7 @@
 #define BATCH 0
 #define REG_NUM 32
 
-int programCounter;
+int programCounter = -4;
 struct Register *registerArray;
 struct inst *instructionMem;
 struct Latch *latches; // [0] = IF-ID, [1] = ID-EX, [2] = EX-MEM, [3] = MEM-WB
@@ -436,8 +436,7 @@ void WB() {
         }
         else if (latches[3].heldInstruction.op == LW || latches[3].heldInstruction.op == ADDI) {
             // Only increments utilization if not a no-op
-    		if(latches[3].heldInstruction.rtIndex != 0 && 
-                (latches[3].heldInstruction.op == LW || latches[3].heldInstruction.op == ADDI))
+    		if(latches[3].heldInstruction.rtIndex != 0)
                 utilization[4] = utilization[4]++;
             registerArray[latches[3].heldInstruction.rtIndex].value = latches[3].heldInstruction.result;
             registerArray[latches[3].heldInstruction.rtIndex].isBeingWrittenTo = 0;
@@ -482,23 +481,23 @@ void MEM() {
         if (memCD == 0) {
             // Executes load word or SW, checks for out of bounds of memory error
             if (latches[2].heldInstruction.op == LW) {
-                if (checkMemInRange(latches[2].heldInstruction.result - 2048) == 0) {
+                if (checkMemInRange(latches[2].heldInstruction.result) == 0) {
                     printf("Memory access: %d is invalid - Simulation Stopped\n",
                             latches[2].heldInstruction.result);
                     haltFlag = 1;   // Used to stop program but allow writeout
                 }
-                latches[2].heldInstruction.result = memoryArray[latches[2].heldInstruction.result / 4 - 2048];
+                latches[2].heldInstruction.result = memoryArray[latches[2].heldInstruction.result / 4];
                 latches[3].heldInstruction = latches[2].heldInstruction;
                 latches[3].valid = 1;
                 latches[2].valid = 0;
             }
             else if (latches[2].heldInstruction.op == SW) {
-                if (checkMemInRange(latches[2].heldInstruction.result - 2048) == 0) {
+                if (checkMemInRange(latches[2].heldInstruction.result) == 0) {
                     printf("Memory access: %d is invalid - Simulation Stopped\n",
                         latches[2].heldInstruction.result);
                     haltFlag = 1;   // Used to stop program but allow writeout
                 }
-                memoryArray[latches[2].heldInstruction.result / 4- 2048] = latches[2].heldInstruction.rtValue;
+                memoryArray[latches[2].heldInstruction.result / 4] = latches[2].heldInstruction.rtValue;
                 latches[2].valid = 0;
             }
             else {  // A simple latch transfer is needed if not SW or LW
@@ -533,7 +532,7 @@ void EX() {
             if (executeOperation(latches[1].heldInstruction) == 1) {
                 programCounter += latches[1].heldInstruction.Imm * 4;
 
-                if (programCounter < 0 || programCounter >= lineCount * 4) {
+                if (programCounter < -4 || programCounter >= lineCount * 4 - 4) {
                     printf("Branched out of Instruction Memory - Simulation Stopped\n");
                     haltFlag = 1;
                     return;
@@ -687,11 +686,11 @@ void IF () {
         }
         if(latches[0].valid == 0 && hasData == 1)
         {
-            if (programCounter < lineCount * 4 && programCounter >= -4) {
+            if (programCounter < lineCount * 4 - 4 && programCounter >= -4) {
+                programCounter += 4;
                 latches[0].heldInstruction = instructionMem[programCounter];
                 latches[0].valid = 1;
                 hasData = 0;
-                programCounter += 4;
 				utilization[0] = utilization[0]++;
             }
             else {
@@ -743,10 +742,10 @@ void IF () {
             hasData = 1;
             if(latches[0].valid == 0 )
             {
+                programCounter += 4;
                 latches[0].heldInstruction = instructionMem[programCounter / 4];
                 latches[0].valid = 1;
                 hasData = 0;
-                programCounter += 4;
                 return;
             }
             else return;
