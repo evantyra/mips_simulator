@@ -418,7 +418,6 @@ int executeOperation(struct inst instruction) {
 }
 
 int checkMemInRange(int address) {
-	printf("address called %i \n",address);
     if (address % 4 == 0 && address / 4 >= 0 && address / 4 < 511 )
         return 1;
     else
@@ -429,23 +428,26 @@ void WB() {
     // Executes WB accordingly
     if (latches[3].valid == 1) {
 		
-		
         if (latches[3].heldInstruction.op == HALT) {
             printf("haltSimulation directive reached WB - Simulation Ended\n");
             haltFlag = 1;   // Ends program with writeout if halt directive read
         }
         else if (latches[3].heldInstruction.op == LW || latches[3].heldInstruction.op == ADDI) {
+
             // Only increments utilization if not a no-op
     		if(latches[3].heldInstruction.rtIndex != 0)
-                utilization[4] = utilization[4]++;
+                utilization[4] += 1.0;
+
             registerArray[latches[3].heldInstruction.rtIndex].value = latches[3].heldInstruction.result;
             registerArray[latches[3].heldInstruction.rtIndex].isBeingWrittenTo = 0;
             latches[3].valid = 0;
         }
         else if (latches[3].heldInstruction.op == ADD || latches[3].heldInstruction.op == SUB ||
                  latches[3].heldInstruction.op == MULT) {
+
             if (latches[3].heldInstruction.rdIndex != 0)
-                utilization[4] = utilization[4]++;
+                utilization[4] += 1.0;
+
             registerArray[latches[3].heldInstruction.rdIndex].value = latches[3].heldInstruction.result;
             registerArray[latches[3].heldInstruction.rdIndex].isBeingWrittenTo = 0;
             latches[3].valid = 0;
@@ -462,7 +464,6 @@ void MEM() {
     // latch has a valid instruction
     if (memCD == 0) {
         if (latches[2].valid == 1) {
-			
             if (latches[2].heldInstruction.op == LW || latches[2].heldInstruction.op == SW)
                 memCD = memoryAccessTime;
             else
@@ -475,8 +476,8 @@ void MEM() {
         memCD--;
 
         // Utilization Incrementer
-		if(latches[2].heldInstruction.op == LW && latches[2].heldInstruction.op == SW)
-            utilization[3] = utilization[3]++;
+		if(latches[2].heldInstruction.op == LW || latches[2].heldInstruction.op == SW) 
+            utilization[3] += 1.0;
 		
         if (memCD == 0) {
             // Executes load word or SW, checks for out of bounds of memory error
@@ -523,7 +524,7 @@ void EX() {
         // Decrement counter
         exCD--;
 
-        utilization[2] = utilization[2]++;
+        utilization[2] += 1.0;
 
         // If number of cycles needed has passed, check for equal register values,
         // If true, increase program counter, in either case the ID-EX mem latch
@@ -550,7 +551,7 @@ void EX() {
         // If data is held since it wasn't able to move forward due to a mem backup
         // Push the instruction into the next latch and validate/invalidate accordingly
         if (hasData == 1 && latches[2].valid == 0) {
-			utilization[2] = utilization[2]++;
+			utilization[2] += 1.0;
             latches[2].heldInstruction = latches[1].heldInstruction;
             latches[2].valid = 1;
             latches[1].valid = 0;
@@ -571,7 +572,7 @@ void EX() {
             return;
     }
 	if(!(latches[1].heldInstruction.rtIndex == 0 && latches[1].heldInstruction.op == ADDI) ){
-		utilization[2] = utilization[2]+1;
+		utilization[2] += 1.0;
 		}
     exCD--;
 
@@ -612,7 +613,7 @@ void ID() {
         }
         else if(latches[0].heldInstruction.op == BEQ || latches[0].heldInstruction.op == HALT)
         {
-            utilization[1] = utilization[1]++;
+            utilization[1] += 1.0;
             if (latches[0].heldInstruction.op == BEQ) {
                 latches[0].heldInstruction.rsValue = registerArray[latches[0].heldInstruction.rsIndex].value;
                 latches[0].heldInstruction.rtValue = registerArray[latches[0].heldInstruction.rtIndex].value;
@@ -649,7 +650,7 @@ void ID() {
             latches[0].valid = 0;
 
             if (!(latches[1].heldInstruction.op == ADDI && latches[1].heldInstruction.rtIndex == 0))
-                utilization[1] = utilization[1]++;
+                utilization[1] += 1.0;
 
             // Automatically reset $zero to never being written to as its value can't change
             registerArray[0].isBeingWrittenTo = 0;
@@ -687,11 +688,10 @@ void IF () {
         if(latches[0].valid == 0 && hasData == 1)
         {
             if (programCounter < lineCount * 4 - 4 && programCounter >= -4) {
-                programCounter += 4;
                 latches[0].heldInstruction = instructionMem[programCounter];
                 latches[0].valid = 1;
                 hasData = 0;
-				utilization[0] = utilization[0]++;
+				utilization[0] += 1.0;
             }
             else {
                 latches[0].heldInstruction.op = ADDI;
@@ -736,7 +736,7 @@ void IF () {
 		}
         IFCD --;
 		
-		utilization[0] = utilization[0] + 1;
+		utilization[0] += 1.0;
         if(IFCD == 0)
         {
             hasData = 1;
@@ -867,20 +867,14 @@ int main(int argc, char *argv[]) {
 
     while (haltFlag == 0) {
         WB();
-        if (haltFlag == 1)
-            break;
-        MEM();
-        if (haltFlag == 1)
-            break;
-        EX();
-        if (haltFlag == 1)
-            break;
-        ID();
-        if (haltFlag == 1)
-            break;
-        IF();
-        if (haltFlag == 1)
-            break;
+        if (haltFlag != 1)
+            MEM();
+        if (haltFlag != 1)
+            EX();
+        if (haltFlag != 1)
+            ID();
+        if (haltFlag != 1)
+            IF();
 
         // Waits for an enter before continuing during single mode
         if (sim_mode == SINGLE) {
@@ -899,18 +893,21 @@ int main(int argc, char *argv[]) {
                         latches[i].valid);
             }
 
+            printf("\nUtilization : %f %f %f %f %f\n", utilization[0], utilization[1], utilization[2],
+                    utilization[3], utilization[4]);
+
             printf("Program Counter: %d\n", programCounter);
-            sim_counter++;
             printf("press ENTER to continue\n");
             while(getchar() != '\n');\
         }
+        sim_counter++;
     }
 
     if(sim_mode == BATCH) {
         fprintf(outputFile, "program name: %s\n", argv[5]);
-        fprintf(outputFile, "stage utilization: %d  %d  %d  %d  %d \n",
-                utilization[0], utilization[1], utilization[2],
-                utilization[3], utilization[4]);
+        fprintf(outputFile, "stage utilization: %f  %f  %f  %f  %f \n",
+                utilization[0] / sim_counter, utilization[1] / sim_counter, utilization[2] / sim_counter,
+                utilization[3] / sim_counter, utilization[4] / sim_counter);
 
         fprintf(outputFile,"register values ");
         for (i = 1; i < REG_NUM; i++)
