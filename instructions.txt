@@ -1,7 +1,7 @@
 addi $t1, $zero, 10
 addi $t2, $t2, 10
 add $s1, $t2, $t1
-beq $t1, $t2, -4
+beq $t1, $t2, 0
 sub $s1, $t2, $t1
 mul $s2, $s1, $t1
 sw $t1, 0($zero)
