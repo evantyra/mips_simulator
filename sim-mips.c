@@ -1,11 +1,4 @@
-// Authored by Patrick Sullivan
-// Tested by Evan Tyra
-
-/* TODO:
-    - Single - Print registers, programCounter (needs to increase by 4 when reading)
-    - Batch - Registers, Total Program Cycles, Utilizations, Program Counter
-    - UTILIZATION COUNTERS
-*/
+// Authored by Patrick Sullivan & Evan Tyra
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -575,7 +568,8 @@ void EX() {
         else
             return;
     }
-	if(!(latches[1].heldInstruction.rtIndex == 0 && latches[1].heldInstruction.op == ADDI) ){
+	if(!(latches[1].heldInstruction.rtIndex == 0 && latches[1].heldInstruction.op == ADDI) 
+        && latches[1].heldInstruction.op != HALT){
 		utilization[2] += 1.0;
 		}
     exCD--;
@@ -617,7 +611,6 @@ void ID() {
         }
         else if(latches[0].heldInstruction.op == BEQ || latches[0].heldInstruction.op == HALT)
         {
-            utilization[1] += 1.0;
             if (latches[0].heldInstruction.op == BEQ) {
                 latches[0].heldInstruction.rsValue = registerArray[latches[0].heldInstruction.rsIndex].value;
                 latches[0].heldInstruction.rtValue = registerArray[latches[0].heldInstruction.rtIndex].value;
@@ -625,6 +618,7 @@ void ID() {
             latches[1].heldInstruction = latches[0].heldInstruction;
             latches[1].valid = 1;
             if (latches[1].heldInstruction.op != HALT)
+                utilization[1] += 1.0;
                 latches[0].valid = 0;
         }
         else
@@ -667,93 +661,64 @@ void ID() {
 void IF () {
     static int hasData = 0;
     static int IFCD = 0;
+    static int buffer = 0
+    ;
 
-    if(IFCD == 0)
+    if(branchFlag == 1)
     {
-        if(branchFlag == 1)
+        hasData = 0;
+        IFCD = 0;
+        if(latches[0].valid == 0) //insert nop in branch case
         {
-            if(latches[0].valid == 0) //insert nop in branch case
-            {
-                latches[0].heldInstruction.op = ADDI;
-                latches[0].heldInstruction.rsIndex = 0;
-                latches[0].heldInstruction.rsValue = 0;
-                latches[0].heldInstruction.rtIndex = 0;
-                latches[0].heldInstruction.rtValue = 0;
-                latches[0].heldInstruction.rdValue = 0;
-                latches[0].heldInstruction.rdValue = 0;
-                latches[0].heldInstruction.Imm = 0;
-                latches[0].heldInstruction.result = 0;
-                latches[0].valid = 1;
-                hasData = 0;
-            }
-            return;
-
+            latches[0].heldInstruction.op = ADDI;
+            latches[0].heldInstruction.rsIndex = 0;
+            latches[0].heldInstruction.rsValue = 0;
+            latches[0].heldInstruction.rtIndex = 0;
+            latches[0].heldInstruction.rtValue = 0;
+            latches[0].heldInstruction.rdValue = 0;
+            latches[0].heldInstruction.rdValue = 0;
+            latches[0].heldInstruction.Imm = 0;
+            latches[0].heldInstruction.result = 0;
+            latches[0].valid = 1;
         }
-        if(latches[0].valid == 0 && hasData == 1)
-        {
-            if (programCounter <= lineCount * 4 - 4 && programCounter >= 0) {
-                latches[0].heldInstruction = instructionMem[programCounter / 4];
-                latches[0].valid = 1;
-                hasData = 0;
-				utilization[0] += 1.0;
-            }
-            else {
-                latches[0].heldInstruction.op = ADDI;
-                latches[0].heldInstruction.rsIndex = 0;
-                latches[0].heldInstruction.rsValue = 0;
-                latches[0].heldInstruction.rsIndex = 0;
-                latches[0].heldInstruction.rsValue = 0;
-                latches[0].heldInstruction.Imm = 0;
-                latches[0].heldInstruction.result = 0;
-                latches[0].valid = 1;
-            }
-        }
-        else if (latches[0].valid == 1 && hasData == 1)
-        {
+        return;
+    }
+    if(IFCD == 0 && latches[0].valid == 0 && hasData == 1)
+    {
+        if (programCounter <= lineCount * 4 - 4 && programCounter >= 0) {
+            latches[0].heldInstruction = instructionMem[programCounter / 4];
+            latches[0].valid = 1;
+            hasData = 0;
             return;
         }
-        else if(hasData == 0)
-        {
-            IFCD = memoryAccessTime;
+        else {
+            printf("Moved outside of range of Instruction Memory - Simulation Stopped\n");
+            exit(1);
         }
     }
+    if (IFCD == 0 && hasData == 0)
+        IFCD = memoryAccessTime;
     if (IFCD != 0)
     {
-		if(branchFlag == 1)
-        {
-            if(latches[0].valid == 0) //insert nop in branch case
-            {
-                latches[0].heldInstruction.op = ADDI;
-                latches[0].heldInstruction.rsIndex = 0;
-                latches[0].heldInstruction.rsValue = 0;
-                latches[0].heldInstruction.rtIndex = 0;
-                latches[0].heldInstruction.rtValue = 0;
-                latches[0].heldInstruction.rdValue = 0;
-                latches[0].heldInstruction.rdValue = 0;
-                latches[0].heldInstruction.Imm = 0;
-                latches[0].heldInstruction.result = 0;
-                latches[0].valid = 1;
-                hasData = 0;
-				IFCD = 0;
-				return;
-            }
-		}
         IFCD --;
-		
-		utilization[0] += 1.0;
-        if(IFCD == 0)
-        {
-            hasData = 1;
-            if(latches[0].valid == 0 )
-            {
-                programCounter += 4;
-                latches[0].heldInstruction = instructionMem[programCounter / 4];
-                latches[0].valid = 1;
-                hasData = 0;
-                return;
-            }
-            else return;
+		buffer += 1.0;
+
+        if (IFCD > 0)
+            return;
+
+        programCounter += 4;
+        hasData = 1;
+
+        if (instructionMem[programCounter / 4].op != HALT)
+            utilization[0] += buffer;
+        buffer = 0;
+
+        if (latches[0].valid == 0) {
+            latches[0].heldInstruction = instructionMem[programCounter / 4];
+            latches[0].valid = 1;
+            hasData = 0;
         }
+
         return;
     }
 }
@@ -882,23 +847,23 @@ int main(int argc, char *argv[]) {
 
         // Waits for an enter before continuing during single mode
         if (sim_mode == SINGLE) {
-            printf("Cycle: %d \n",sim_counter);
+            // printf("Cycle: %d \n",sim_counter);
 
             printf("Registers :\n");
             for (i = 1; i < REG_NUM; i++){
                 printf("%d  ", registerArray[i].value);
             }
+            printf("\n");
+            // printf("\nLatches : \n");
 
-            printf("\nLatches : \n");
+            // for (i = 0; i < 4; i++) {
+            //     printf("%d %d %d %d %d\n", latches[i].heldInstruction.op, latches[i].heldInstruction.rsIndex,
+            //             latches[i].heldInstruction.rtIndex, latches[i].heldInstruction.rdIndex,
+            //             latches[i].valid);
+            // }
 
-            for (i = 0; i < 4; i++) {
-                printf("%d %d %d %d %d\n", latches[i].heldInstruction.op, latches[i].heldInstruction.rsIndex,
-                        latches[i].heldInstruction.rtIndex, latches[i].heldInstruction.rdIndex,
-                        latches[i].valid);
-            }
-
-            printf("\nUtilization : %f %f %f %f %f\n", utilization[0], utilization[1], utilization[2],
-                    utilization[3], utilization[4]);
+            // printf("\nUtilization : %f %f %f %f %f\n", utilization[0], utilization[1], utilization[2],
+            //         utilization[3], utilization[4]);
 
             printf("Program Counter: %d\n", programCounter);
             printf("press ENTER to continue\n");
@@ -909,6 +874,7 @@ int main(int argc, char *argv[]) {
 
     if(sim_mode == BATCH) {
         fprintf(outputFile, "program name: %s\n", argv[5]);
+        fprintf(outputFile, "Total Program Cycles : %d\n", sim_counter);
         fprintf(outputFile, "stage utilization: %f  %f  %f  %f  %f \n",
                 utilization[0] / sim_counter, utilization[1] / sim_counter, utilization[2] / sim_counter,
                 utilization[3] / sim_counter, utilization[4] / sim_counter);
