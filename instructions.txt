@@ -1,11 +1,11 @@
-addi $t1, $zero, 10
-addi $t2, $t2, 10
-add $s1, $t2, $t1
-beq $t1, $t2, 0
-sub $s1, $t2, $t1
-mul $s2, $s1, $t1
-sw $t1, 0($zero)
-sw $t2, 2044($zero)
-lw $s3, 0($zero)
-lw $s4, 2044($zero)
+addi $t1, $zero, 7
+addi $t2, $t2, 3
+add $t3, $t2, $t1
+sub $t4, $t1, $t2
+mult $t5, $t3, $t4
+sub $t6, $t5, $t4
+mult $t7, $t5, $t6
+add $s0, $t3, $t4
+add $s1, $t4, $t5
+sub $s2, $s1, $s0
 haltSimulation

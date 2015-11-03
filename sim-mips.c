@@ -350,6 +350,10 @@ struct inst parser(char* inputString) {
         parsedInstruction.rtIndex = 0;
         parsedInstruction.Imm = 0;
     }
+    else {
+        printf("Opcode does not match a supported opcode - Simulator Stopped\n");
+        exit(1);
+    }
 
     if (parsedInstruction.op == ADD ||
             parsedInstruction.op == SUB ||
@@ -418,7 +422,7 @@ int executeOperation(struct inst instruction) {
 }
 
 int checkMemInRange(int address) {
-    if (address % 4 == 0 && address / 4 >= 0 && address / 4 < 511 )
+    if (address % 4 == 0 && address / 4 >= 0 && address / 4 <= 511 )
         return 1;
     else
         return 0;
@@ -533,7 +537,7 @@ void EX() {
             if (executeOperation(latches[1].heldInstruction) == 1) {
                 programCounter += latches[1].heldInstruction.Imm * 4;
 
-                if (programCounter < -4 || programCounter >= lineCount * 4 - 4) {
+                if (programCounter < -4 || programCounter > lineCount * 4 - 8) {
                     printf("Branched out of Instruction Memory - Simulation Stopped\n");
                     haltFlag = 1;
                     return;
@@ -687,8 +691,8 @@ void IF () {
         }
         if(latches[0].valid == 0 && hasData == 1)
         {
-            if (programCounter < lineCount * 4 - 4 && programCounter >= -4) {
-                latches[0].heldInstruction = instructionMem[programCounter];
+            if (programCounter <= lineCount * 4 - 4 && programCounter >= 0) {
+                latches[0].heldInstruction = instructionMem[programCounter / 4];
                 latches[0].valid = 1;
                 hasData = 0;
 				utilization[0] += 1.0;
